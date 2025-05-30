@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문서 뷰어</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <!-- Mermaid.js for diagram rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+    <!-- Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>문서 뷰어</h1>
+            <p class="subtitle">PDF 및 Markdown 파일을 지원합니다</p>
+        </header>
+
+        <!-- 파일 업로드 영역 -->
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <div class="upload-icon">📄</div>
+                    <p>PDF 또는 Markdown 파일을 여기에 드래그하거나 클릭하여 선택하세요</p>
+                    <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
+                    <input type="file" id="fileInput" accept=".pdf,.md,.markdown" style="display: none;">
+                    <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        파일 선택
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 뷰어 영역 -->
+        <div class="viewer-section" id="viewerSection" style="display: none;">
+            <!-- 컨트롤 패널 -->
+            <div class="controls">
+                <div class="file-info">
+                    <span id="fileName" class="file-name"></span>
+                    <span id="fileType" class="file-type"></span>
+                </div>
+                <div class="nav-controls" id="pdfNavControls">
+                    <button id="prevBtn" class="nav-btn" disabled>◀ 이전</button>
+                    <span class="page-info">
+                        <input type="number" id="pageInput" min="1" value="1" class="page-input">
+                        <span> / </span>
+                        <span id="totalPages">0</span>
+                    </span>
+                    <button id="nextBtn" class="nav-btn" disabled>다음 ▶</button>
+                </div>
+                <div class="nav-controls" id="markdownNavControls" style="display: none;">
+                    <button id="tocToggle" class="nav-btn">📋 목차</button>
+                    <button id="scrollTop" class="nav-btn">⬆ 맨 위로</button>
+                </div>
+                <div class="file-controls">
+                    <button id="newFileBtn" class="control-btn">새 파일</button>
+                </div>
+            </div>
+
+            <!-- PDF 뷰어 -->
+            <div class="pdf-container" id="pdfContainer">
+                <canvas id="pdfCanvas"></canvas>
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>문서를 로딩 중입니다...</p>
+                </div>
+            </div>
+
+            <!-- Markdown 뷰어 -->
+            <div class="markdown-container" id="markdownContainer" style="display: none;">
+                <div class="markdown-sidebar" id="markdownSidebar">
+                    <div class="toc-header">
+                        <h3>목차</h3>
+                        <button id="closeToc" class="close-btn">✕</button>
+                    </div>
+                    <div id="tableOfContents" class="toc-content"></div>
+                </div>
+                <div class="markdown-content" id="markdownContent"></div>
+            </div>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div class="error-message" id="errorMessage" style="display: none;">
+            <p id="errorText"></p>
+            <button onclick="hideError()">확인</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

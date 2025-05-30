@@ -1,0 +1,188 @@
+# 문서 뷰어 (Document Viewer)
+
+PDF와 Markdown 파일을 지원하는 웹 기반 문서 뷰어입니다. Mermaid 다이어그램 렌더링과 자동 목차 생성 기능을 포함한 완전한 문서 뷰어 솔루션입니다.
+
+## ✨ 주요 기능
+
+### 📄 PDF 뷰어
+- **고품질 렌더링**: PDF.js를 사용한 브라우저 네이티브 PDF 렌더링
+- **페이지 네비게이션**: 이전/다음 페이지, 특정 페이지로 직접 이동
+- **반응형 스케일링**: 화면 크기에 맞는 자동 크기 조정
+- **키보드 단축키**: 화살표 키, Home, End 키 지원
+
+### 📝 Markdown 뷰어
+- **완전한 Markdown 지원**: GitHub Flavored Markdown (GFM) 호환
+- **Mermaid 다이어그램**: 플로우차트, 시퀀스 다이어그램, 간트 차트 등 자동 렌더링
+- **코드 하이라이팅**: Prism.js를 사용한 다양한 언어 구문 강조
+- **자동 목차 생성**: 헤딩 기반 네비게이션 사이드바
+- **스마트 링크**: 목차 클릭으로 해당 섹션으로 부드러운 스크롤
+
+### 🎨 사용자 인터페이스
+- **드래그 앤 드롭**: 파일을 끌어다 놓기만 하면 자동 업로드
+- **반응형 디자인**: 데스크톱, 태블릿, 모바일 모든 기기 지원
+- **직관적 네비게이션**: 파일 타입별 최적화된 컨트롤
+- **깔끔한 디자인**: 현대적이고 사용자 친화적인 인터페이스
+
+## 🛠 기술 스택
+
+### 프론트엔드
+- **HTML5**: 시맨틱 마크업과 File API
+- **CSS3**: Flexbox, Grid, 애니메이션
+- **Vanilla JavaScript**: 의존성 없는 순수 JavaScript
+
+### 라이브러리
+- **[PDF.js](https://mozilla.github.io/pdf.js/)**: Mozilla의 JavaScript PDF 렌더러
+- **[Marked.js](https://marked.js.org/)**: 빠르고 가벼운 Markdown 파서
+- **[Mermaid.js](https://mermaid.js.org/)**: 다이어그램 및 차트 렌더링
+- **[Prism.js](https://prismjs.com/)**: 코드 구문 강조
+
+## 🚀 설치 및 실행
+
+### 요구사항
+- 모던 웹 브라우저 (Chrome, Firefox, Safari, Edge)
+- 로컬 웹 서버 (선택사항, 파일 업로드 기능을 위해 권장)
+
+### 로컬 실행
+1. 저장소 클론
+```bash
+git clone <repository-url>
+cd pdf_bbs
+```
+
+2. 웹 서버 실행 (Python 예시)
+```bash
+# Python 3
+python -m http.server 8000
+
+# Python 2
+python -m SimpleHTTPServer 8000
+```
+
+3. 브라우저에서 접속
+```
+http://localhost:8000
+```
+
+### 직접 파일 열기
+웹 서버 없이도 `index.html` 파일을 브라우저에서 직접 열 수 있습니다.
+
+## 📁 프로젝트 구조
+
+```
+pdf_bbs/
+├── index.html          # 메인 HTML 파일
+├── css/
+│   └── style.css       # 통합 스타일시트
+├── js/
+│   └── app.js          # 메인 JavaScript 로직
+├── sample.md           # 테스트용 Markdown 파일
+└── README.md           # 프로젝트 문서
+```
+
+## 📖 사용 방법
+
+### 1. 파일 업로드
+- **드래그 앤 드롭**: 파일을 업로드 영역에 끌어다 놓기
+- **파일 선택**: "파일 선택" 버튼 클릭하여 파일 브라우저 열기
+
+### 2. 지원 파일 형식
+- **PDF**: `.pdf`
+- **Markdown**: `.md`, `.markdown`
+
+### 3. PDF 뷰어 사용법
+- **페이지 이동**: 이전/다음 버튼 또는 화살표 키
+- **특정 페이지**: 페이지 번호 입력 후 Enter
+- **키보드 단축키**:
+  - `←` / `→`: 이전/다음 페이지
+  - `Home`: 첫 페이지
+  - `End`: 마지막 페이지
+
+### 4. Markdown 뷰어 사용법
+- **목차 토글**: 📋 목차 버튼 클릭
+- **맨 위로**: ⬆ 맨 위로 버튼 클릭
+- **목차 네비게이션**: 목차 항목 클릭으로 해당 섹션 이동
+
+## 🎯 지원 기능
+
+### Markdown 문법 지원
+- [x] 헤딩 (H1-H6)
+- [x] 텍스트 스타일링 (굵게, 기울임, 취소선)
+- [x] 목록 (순서 있음/없음, 중첩)
+- [x] 링크 및 이미지
+- [x] 코드 블록 및 인라인 코드
+- [x] 표 (Table)
+- [x] 인용문 (Blockquote)
+- [x] 수평선
+- [x] 체크리스트
+
+### Mermaid 다이어그램 지원
+- [x] 플로우차트 (Flowchart)
+- [x] 시퀀스 다이어그램 (Sequence Diagram)
+- [x] 간트 차트 (Gantt Chart)
+- [x] 클래스 다이어그램 (Class Diagram)
+- [x] 상태 다이어그램 (State Diagram)
+- [x] 파이 차트 (Pie Chart)
+
+### 코드 하이라이팅 지원 언어
+- JavaScript, Python, Java, C++, HTML, CSS
+- JSON, XML, YAML, Markdown
+- Shell, SQL, PHP, Ruby, Go
+- 그 외 Prism.js가 지원하는 모든 언어
+
+## 🔧 커스터마이징
+
+### 테마 변경
+`css/style.css` 파일에서 색상 변수를 수정하여 테마를 변경할 수 있습니다:
+
+```css
+:root {
+  --primary-color: #3498db;
+  --secondary-color: #2c3e50;
+  --background-color: #f5f5f5;
+  --text-color: #333;
+}
+```
+
+### Mermaid 테마 설정
+`js/app.js` 파일에서 Mermaid 테마를 변경할 수 있습니다:
+
+```javascript
+mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default', // 'default', 'dark', 'forest', 'neutral'
+    securityLevel: 'loose'
+});
+```
+
+## 🐛 알려진 제한사항
+
+- 매우 큰 PDF 파일 (50MB 이상)은 성능 이슈가 있을 수 있습니다
+- 일부 복잡한 PDF 폼은 완전히 지원되지 않을 수 있습니다
+- 인터넷 연결이 필요합니다 (CDN 라이브러리 사용)
+
+## 🤝 기여하기
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 `LICENSE` 파일을 참조하세요.
+
+## 🙏 감사의 말
+
+- [PDF.js](https://mozilla.github.io/pdf.js/) - Mozilla Foundation
+- [Marked.js](https://marked.js.org/) - Christopher Jeffrey
+- [Mermaid.js](https://mermaid.js.org/) - Knut Sveidqvist
+- [Prism.js](https://prismjs.com/) - Lea Verou
+
+## 📞 연락처
+
+프로젝트 링크: [https://github.com/username/pdf_bbs](https://github.com/username/pdf_bbs)
+
+---
+
+⭐ 이 프로젝트가 유용하다면 스타를 눌러주세요!
