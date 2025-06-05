@@ -128,13 +128,13 @@ function setupEventListeners() {
 // 드래그 오버 처리
 function handleDragOver(e) {
     e.preventDefault();
-    uploadArea.classList.add('dragover');
+    e.currentTarget.classList.add('dragover');
 }
 
 // 드래그 리브 처리
 function handleDragLeave(e) {
     e.preventDefault();
-    uploadArea.classList.remove('dragover');
+    e.currentTarget.classList.remove('dragover');
 }
 
 // 드롭 처리
