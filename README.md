@@ -17,6 +17,13 @@ PDF와 Markdown 파일을 지원하는 웹 기반 문서 뷰어입니다. Mermai
 - **자동 목차 생성**: 헤딩 기반 네비게이션 사이드바
 - **스마트 링크**: 목차 클릭으로 해당 섹션으로 부드러운 스크롤
 
+### 📊 문서 비교
+- **버전 비교**: 동일한 형식의 문서 간 텍스트 비교 분석
+- **실시간 차이점 표시**: 추가/삭제된 내용을 색상으로 구분하여 시각화
+- **정밀 비교**: 단어 단위로 정확한 변경사항 추적
+- **탭 기반 모드**: 보기 모드와 비교 모드 간 직관적 전환
+- **이중 파일 업로드**: 이전 문서와 새 문서를 각각 선택하여 비교
+
 ### 🎨 사용자 인터페이스
 - **드래그 앤 드롭**: 파일을 끌어다 놓기만 하면 자동 업로드
 - **반응형 디자인**: 데스크톱, 태블릿, 모바일 모든 기기 지원
@@ -35,6 +42,7 @@ PDF와 Markdown 파일을 지원하는 웹 기반 문서 뷰어입니다. Mermai
 - **[Marked.js](https://marked.js.org/)**: 빠르고 가벼운 Markdown 파서
 - **[Mermaid.js](https://mermaid.js.org/)**: 다이어그램 및 차트 렌더링
 - **[Prism.js](https://prismjs.com/)**: 코드 구문 강조
+- **[jsdiff](https://github.com/kpdecker/jsdiff)**: 텍스트 차이 분석 및 비교
 
 ## 🚀 설치 및 실행
 
@@ -102,6 +110,18 @@ pdf_bbs/
 - **맨 위로**: ⬆ 맨 위로 버튼 클릭
 - **목차 네비게이션**: 목차 항목 클릭으로 해당 섹션 이동
 
+### 5. 문서 비교 사용법
+- **모드 전환**: 상단의 "비교 모드" 탭 클릭
+- **파일 선택**: 
+  - 왼쪽 영역에 이전 문서(원본) 업로드
+  - 오른쪽 영역에 새 문서(비교 대상) 업로드
+- **비교 실행**: "문서 비교하기" 버튼 클릭
+- **결과 해석**:
+  - 🟢 **초록색 배경**: 새로 추가된 내용
+  - 🔴 **빨간색 배경**: 삭제된 내용 (취소선 표시)
+  - ⚪ **일반 텍스트**: 변경되지 않은 내용
+- **지원 형식**: 동일한 형식의 문서만 비교 가능 (PDF ↔ PDF, Markdown ↔ Markdown)
+
 ## 🎯 지원 기능
 
 ### Markdown 문법 지원
@@ -122,6 +142,16 @@ pdf_bbs/
 - [x] 클래스 다이어그램 (Class Diagram)
 - [x] 상태 다이어그램 (State Diagram)
 - [x] 파이 차트 (Pie Chart)
+
+### 문서 비교 기능
+- [x] PDF 문서 간 텍스트 비교
+- [x] Markdown 문서 간 텍스트 비교
+- [x] 단어 단위 정밀 차이 분석
+- [x] 추가/삭제 내용 시각적 구분
+- [x] 실시간 비교 결과 표시
+- [x] 드래그 앤 드롭 파일 업로드
+- [x] 동일 형식 문서 검증
+- [x] 비교 결과 범례 표시
 
 ### 코드 하이라이팅 지원 언어
 - JavaScript, Python, Java, C++, HTML, CSS
@@ -178,6 +208,7 @@ mermaid.initialize({
 - [Marked.js](https://marked.js.org/) - Christopher Jeffrey
 - [Mermaid.js](https://mermaid.js.org/) - Knut Sveidqvist
 - [Prism.js](https://prismjs.com/) - Lea Verou
+- [jsdiff](https://github.com/kpdecker/jsdiff) - Kevin Decker
 
 ## 📞 연락처
 
