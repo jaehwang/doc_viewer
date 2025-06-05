@@ -41,9 +41,54 @@ body {
 /* 업로드 섹션 */
 .upload-section {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     min-height: 400px;
+    gap: 20px;
+}
+
+/* 모드 선택 탭 */
+.mode-tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 4px;
+    gap: 4px;
+}
+
+.tab-btn {
+    padding: 12px 24px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    color: #6c757d;
+}
+
+.tab-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.tab-btn.active {
+    background: #3498db;
+    color: white;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+}
+
+/* 업로드 컨테이너 */
+.upload-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.upload-container.comparison-mode {
+    flex-direction: column;
+    gap: 20px;
 }
 
 .upload-area {
@@ -56,6 +101,76 @@ body {
     background-color: white;
     transition: all 0.3s ease;
     cursor: pointer;
+}
+
+/* 비교 모드 업로드 영역 */
+.comparison-uploads {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.comparison-upload {
+    flex: 1;
+    max-width: none;
+    min-height: 250px;
+}
+
+.comparison-upload h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+    font-size: 1.2em;
+}
+
+.file-status {
+    margin-top: 15px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    display: none;
+}
+
+.file-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    display: block;
+}
+
+.file-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    display: block;
+}
+
+/* 비교 컨트롤 */
+.comparison-controls {
+    margin-top: 20px;
+}
+
+.compare-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 6px;
+    font-size: 1.1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.compare-btn:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.compare-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
 }
 
 .upload-area:hover {
@@ -599,6 +714,105 @@ body {
     
     #pdfCanvas {
         max-height: 60vh;
+    }
+}
+
+/* 비교 결과 컨테이너 */
+.comparison-container {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.comparison-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.comparison-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.comparison-legend {
+    display: flex;
+    gap: 20px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.legend-color.added {
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.legend-color.removed {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+.comparison-content {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    line-height: 1.6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 200px;
+    white-space: pre-wrap;
+}
+
+/* Diff 스타일링 */
+.diff-added {
+    background: #d4edda;
+    color: #155724;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.diff-removed {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 2px 4px;
+    border-radius: 3px;
+    text-decoration: line-through;
+}
+
+.diff-unchanged {
+    color: #495057;
+}
+
+@media (max-width: 768px) {
+    .comparison-uploads {
+        flex-direction: column;
+    }
+    
+    .comparison-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .comparison-legend {
+        flex-direction: column;
+        gap: 10px;
     }
 }
 

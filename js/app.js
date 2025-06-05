@@ -10,6 +10,14 @@ let ctx = null;
 let currentFileType = null;
 let currentFileName = null;
 
+let comparisonMode = false;
+let oldDocument = null;
+let newDocument = null;
+let oldDocumentText = '';
+let newDocumentText = '';
+let oldDocumentType = null;
+let newDocumentType = null;
+
 // DOM 요소들
 const uploadSection = document.getElementById('uploadSection');
 const viewerSection = document.getElementById('viewerSection');
@@ -33,6 +41,20 @@ const markdownContent = document.getElementById('markdownContent');
 const markdownSidebar = document.getElementById('markdownSidebar');
 const tableOfContents = document.getElementById('tableOfContents');
 const pdfNavControls = document.getElementById('pdfNavControls');
+
+const viewModeTab = document.getElementById('viewModeTab');
+const compareModeTab = document.getElementById('compareModeTab');
+const viewModeContainer = document.getElementById('viewModeContainer');
+const compareModeContainer = document.getElementById('compareModeContainer');
+const oldFileArea = document.getElementById('oldFileArea');
+const newFileArea = document.getElementById('newFileArea');
+const oldFileInput = document.getElementById('oldFileInput');
+const newFileInput = document.getElementById('newFileInput');
+const oldFileStatus = document.getElementById('oldFileStatus');
+const newFileStatus = document.getElementById('newFileStatus');
+const compareBtn = document.getElementById('compareBtn');
+const comparisonContainer = document.getElementById('comparisonContainer');
+const comparisonContent = document.getElementById('comparisonContent');
 const markdownNavControls = document.getElementById('markdownNavControls');
 const tocToggle = document.getElementById('tocToggle');
 const scrollTop = document.getElementById('scrollTop');
@@ -63,6 +85,21 @@ function setupEventListeners() {
     uploadArea.addEventListener('dragover', handleDragOver);
     uploadArea.addEventListener('dragleave', handleDragLeave);
     uploadArea.addEventListener('drop', handleDrop);
+    
+    // 비교 모드 파일 입력 이벤트
+    oldFileInput.addEventListener('change', (e) => handleComparisonFileSelect(e, 'old'));
+    newFileInput.addEventListener('change', (e) => handleComparisonFileSelect(e, 'new'));
+    
+    // 비교 모드 드래그 앤 드롭 이벤트
+    oldFileArea.addEventListener('click', () => oldFileInput.click());
+    oldFileArea.addEventListener('dragover', handleDragOver);
+    oldFileArea.addEventListener('dragleave', handleDragLeave);
+    oldFileArea.addEventListener('drop', (e) => handleComparisonDrop(e, 'old'));
+    
+    newFileArea.addEventListener('click', () => newFileInput.click());
+    newFileArea.addEventListener('dragover', handleDragOver);
+    newFileArea.addEventListener('dragleave', handleDragLeave);
+    newFileArea.addEventListener('drop', (e) => handleComparisonDrop(e, 'new'));
     
     // 네비게이션 버튼 이벤트
     prevBtn.addEventListener('click', showPrevPage);
@@ -111,11 +148,29 @@ function handleDrop(e) {
     }
 }
 
+function handleComparisonDrop(e, type) {
+    e.preventDefault();
+    const area = type === 'old' ? oldFileArea : newFileArea;
+    area.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleComparisonFile(files[0], type);
+    }
+}
+
 // 파일 선택 처리
 function handleFileSelect(e) {
     const file = e.target.files[0];
     if (file) {
         handleFile(file);
+    }
+}
+
+function handleComparisonFileSelect(e, type) {
+    const file = e.target.files[0];
+    if (file) {
+        handleComparisonFile(file, type);
     }
 }
 
@@ -135,6 +190,39 @@ function handleFile(file) {
     } else {
         showError('지원되지 않는 파일 형식입니다. PDF 또는 Markdown 파일을 선택해주세요.');
         return;
+    }
+}
+
+function handleComparisonFile(file, type) {
+    const fileExtension = file.name.toLowerCase().split('.').pop();
+    let fileType = null;
+    
+    if (file.type === 'application/pdf' || fileExtension === 'pdf') {
+        fileType = 'pdf';
+    } else if (fileExtension === 'md' || fileExtension === 'markdown') {
+        fileType = 'markdown';
+    } else {
+        showComparisonFileStatus(type, 'error', '지원되지 않는 파일 형식입니다.');
+        return;
+    }
+    
+    if (type === 'old') {
+        oldDocumentType = fileType;
+        oldDocument = file;
+        showComparisonFileStatus('old', 'success', `${file.name} 선택됨`);
+    } else {
+        newDocumentType = fileType;
+        newDocument = file;
+        showComparisonFileStatus('new', 'success', `${file.name} 선택됨`);
+    }
+    
+    if (oldDocument && newDocument) {
+        if (oldDocumentType === newDocumentType) {
+            compareBtn.disabled = false;
+        } else {
+            compareBtn.disabled = true;
+            showComparisonFileStatus('new', 'error', '두 문서의 형식이 다릅니다. 같은 형식의 문서를 선택해주세요.');
+        }
     }
 }
 
@@ -488,6 +576,8 @@ function showUploadSection() {
     currentFileName = null;
     fileInput.value = '';
     
+    resetComparisonMode();
+    
     // 사이드바 숨김
     hideTableOfContents();
 }
@@ -523,6 +613,147 @@ function showError(message) {
 // 에러 메시지 숨김
 function hideError() {
     errorMessage.style.display = 'none';
+}
+
+function switchMode(mode) {
+    comparisonMode = mode === 'compare';
+    
+    if (comparisonMode) {
+        viewModeTab.classList.remove('active');
+        compareModeTab.classList.add('active');
+        viewModeContainer.style.display = 'none';
+        compareModeContainer.style.display = 'block';
+    } else {
+        compareModeTab.classList.remove('active');
+        viewModeTab.classList.add('active');
+        compareModeContainer.style.display = 'none';
+        viewModeContainer.style.display = 'flex';
+    }
+    
+    viewerSection.style.display = 'none';
+    uploadSection.style.display = 'block';
+    
+    // 상태 초기화
+    resetComparisonMode();
+}
+
+function resetComparisonMode() {
+    oldDocument = null;
+    newDocument = null;
+    oldDocumentText = '';
+    newDocumentText = '';
+    oldDocumentType = null;
+    newDocumentType = null;
+    
+    oldFileInput.value = '';
+    newFileInput.value = '';
+    oldFileStatus.style.display = 'none';
+    newFileStatus.style.display = 'none';
+    compareBtn.disabled = true;
+    
+    comparisonContainer.style.display = 'none';
+}
+
+function showComparisonFileStatus(type, status, message) {
+    const statusElement = type === 'old' ? oldFileStatus : newFileStatus;
+    statusElement.textContent = message;
+    statusElement.className = `file-status ${status}`;
+    statusElement.style.display = 'block';
+}
+
+async function extractPDFText(file) {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        let fullText = '';
+        
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
+        }
+        
+        return fullText;
+    } catch (error) {
+        console.error('PDF 텍스트 추출 오류:', error);
+        throw new Error('PDF 텍스트를 추출할 수 없습니다.');
+    }
+}
+
+// Markdown 텍스트 추출
+async function extractMarkdownText(file) {
+    try {
+        const text = await file.text();
+        return text;
+    } catch (error) {
+        console.error('Markdown 텍스트 추출 오류:', error);
+        throw new Error('Markdown 텍스트를 추출할 수 없습니다.');
+    }
+}
+
+async function compareDocuments() {
+    if (!oldDocument || !newDocument) {
+        showError('두 문서를 모두 선택해주세요.');
+        return;
+    }
+    
+    try {
+        showLoading();
+        
+        if (oldDocumentType === 'pdf') {
+            oldDocumentText = await extractPDFText(oldDocument);
+            newDocumentText = await extractPDFText(newDocument);
+        } else {
+            oldDocumentText = await extractMarkdownText(oldDocument);
+            newDocumentText = await extractMarkdownText(newDocument);
+        }
+        
+        const diff = Diff.diffWords(oldDocumentText, newDocumentText);
+        
+        renderComparisonResult(diff);
+        
+        // 뷰어 섹션 표시
+        uploadSection.style.display = 'none';
+        viewerSection.style.display = 'block';
+        
+        pdfContainer.style.display = 'none';
+        markdownContainer.style.display = 'none';
+        comparisonContainer.style.display = 'block';
+        
+        // 파일 정보 업데이트
+        fileName.textContent = `${oldDocument.name} vs ${newDocument.name}`;
+        fileType.textContent = '문서 비교';
+        
+        hideLoading();
+        
+    } catch (error) {
+        console.error('문서 비교 오류:', error);
+        hideLoading();
+        showError('문서 비교 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+function renderComparisonResult(diff) {
+    let html = '';
+    
+    diff.forEach(part => {
+        if (part.added) {
+            html += `<span class="diff-added">${escapeHtml(part.value)}</span>`;
+        } else if (part.removed) {
+            html += `<span class="diff-removed">${escapeHtml(part.value)}</span>`;
+        } else {
+            html += `<span class="diff-unchanged">${escapeHtml(part.value)}</span>`;
+        }
+    });
+    
+    comparisonContent.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // 윈도우 리사이즈 이벤트
