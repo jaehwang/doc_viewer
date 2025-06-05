@@ -116,6 +116,11 @@ function setupEventListeners() {
     // 새 파일 버튼 이벤트
     newFileBtn.addEventListener('click', showUploadSection);
     
+    viewModeTab.addEventListener('click', () => switchMode('view'));
+    compareModeTab.addEventListener('click', () => switchMode('compare'));
+    
+    compareBtn.addEventListener('click', compareDocuments);
+    
     // Markdown 네비게이션 이벤트
     tocToggle.addEventListener('click', toggleTableOfContents);
     scrollTop.addEventListener('click', scrollToTop);
