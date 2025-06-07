@@ -28,7 +28,7 @@ const nextBtn = document.getElementById('nextBtn');
 const pageInput = document.getElementById('pageInput');
 const totalPagesSpan = document.getElementById('totalPages');
 const newFileBtn = document.getElementById('newFileBtn');
-const textLayer = document.getElementById('textLayer');
+
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('errorMessage');
 const errorText = document.getElementById('errorText');
@@ -339,7 +339,7 @@ async function renderPage(pageNum) {
         
         await page.render(renderContext).promise;
         
-        await renderTextLayer(page, scaledViewport);
+        await renderPDFAsHTML(page, scaledViewport);
         
         hideLoading();
         
@@ -350,14 +350,22 @@ async function renderPage(pageNum) {
     }
 }
 
-async function renderTextLayer(page, viewport) {
+async function renderPDFAsHTML(page, viewport) {
     try {
-        textLayer.innerHTML = '';
-        
         const textContent = await page.getTextContent();
+        const pdfContainer = document.getElementById('pdfContainer');
         
-        textLayer.style.width = viewport.width + 'px';
-        textLayer.style.height = viewport.height + 'px';
+        let htmlContainer = document.getElementById('pdfHtmlContainer');
+        if (!htmlContainer) {
+            htmlContainer = document.createElement('div');
+            htmlContainer.id = 'pdfHtmlContainer';
+            htmlContainer.className = 'pdf-html-container';
+            pdfContainer.appendChild(htmlContainer);
+        }
+        
+        htmlContainer.innerHTML = '';
+        htmlContainer.style.width = viewport.width + 'px';
+        htmlContainer.style.height = viewport.height + 'px';
         
         textContent.items.forEach(function(textItem) {
             const tx = pdfjsLib.Util.transform(
@@ -367,31 +375,29 @@ async function renderTextLayer(page, viewport) {
             
             const style = textContent.styles[textItem.fontName];
             const angle = Math.atan2(tx[1], tx[0]);
-            
-            if (style.vertical) {
-                angle += Math.PI / 2;
-            }
-            
             const fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
-            const fontAscent = fontHeight;
             
             const span = document.createElement('span');
             span.textContent = textItem.str;
+            span.className = 'pdf-text-item';
             span.style.position = 'absolute';
             span.style.left = tx[4] + 'px';
-            span.style.top = (tx[5] - fontAscent) + 'px';
+            span.style.top = (tx[5] - fontHeight) + 'px';
             span.style.fontSize = fontHeight + 'px';
             span.style.fontFamily = style.fontFamily || 'sans-serif';
+            span.style.color = 'transparent';
+            span.style.userSelect = 'text';
+            span.style.cursor = 'text';
             
             if (angle !== 0) {
                 span.style.transform = 'rotate(' + angle + 'rad)';
             }
             
-            textLayer.appendChild(span);
+            htmlContainer.appendChild(span);
         });
         
     } catch (error) {
-        console.error('텍스트 레이어 렌더링 오류:', error);
+        console.error('PDF HTML 렌더링 오류:', error);
     }
 }
 
