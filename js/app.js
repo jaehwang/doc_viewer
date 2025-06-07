@@ -339,14 +339,33 @@ async function renderPage(pageNum) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // 컨테이너 크기에 맞춰 스케일 조정
+        // 컨테이너 크기가 정확히 계산될 때까지 잠시 대기
+        await new Promise(resolve => {
+            if (viewerContainer.clientWidth > 0) {
+                resolve();
+            } else {
+                setTimeout(resolve, 50);
+            }
+        });
+        
         const containerWidth = viewerContainer.clientWidth - 60;
         const containerHeight = window.innerHeight * 0.8;
         
-        let scale = Math.min(
-            containerWidth / viewport.width,
-            containerHeight / viewport.height
-        );
+        const isLandscape = viewport.width > viewport.height;
+        
+        let scale;
+        
+        if (isLandscape) {
+            scale = Math.min(
+                containerWidth / viewport.width,
+                (containerHeight * 0.9) / viewport.height
+            );
+        } else {
+            scale = Math.min(
+                containerWidth / viewport.width,
+                containerHeight / viewport.height
+            );
+        }
         
         scale = Math.max(0.5, Math.min(scale, 3.0));
         
@@ -855,7 +874,7 @@ window.addEventListener('resize', function() {
         // 리사이즈 시 현재 페이지 다시 렌더링
         setTimeout(() => {
             renderPage(currentPage);
-        }, 100);
+        }, 150);
     }
 });
 
