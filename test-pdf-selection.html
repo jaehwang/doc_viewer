@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 텍스트 선택 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .pdf-viewer-wrapper {
+            position: relative;
+            display: inline-block;
+            background: white;
+            border: 2px solid #ccc;
+            margin: 20px 0;
+        }
+        .pdf-html-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: auto;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+        }
+        .pdf-text-item {
+            position: absolute;
+            white-space: pre;
+            line-height: 1;
+            pointer-events: auto;
+            user-select: text;
+            cursor: text;
+            color: rgba(0, 0, 0, 0.01);
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: inherit;
+            margin: 0;
+            padding: 0;
+            transform-origin: left bottom;
+        }
+        .pdf-text-item:hover {
+            background: rgba(0, 123, 255, 0.1);
+        }
+        .pdf-text-item::-moz-selection {
+            background: rgba(0, 123, 255, 0.4);
+            color: rgba(0, 0, 0, 0.8);
+        }
+        .pdf-text-item::selection {
+            background: rgba(0, 123, 255, 0.4);
+            color: rgba(0, 0, 0, 0.8);
+        }
+        .pdf-text-item.selected {
+            background: rgba(0, 123, 255, 0.3) !important;
+            color: rgba(0, 0, 0, 0.9) !important;
+            border-radius: 2px;
+        }
+        .pdf-html-container * {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        .mock-canvas {
+            width: 400px;
+            height: 300px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+        .debug-mode {
+            background: rgba(255, 0, 0, 0.1) !important;
+            border: 1px solid red !important;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 5px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF 텍스트 선택 기능 테스트</h1>
+        
+        <div class="test-section">
+            <h2>테스트 설명</h2>
+            <p>이 페이지는 PDF 뷰어의 텍스트 선택 기능을 테스트하기 위한 것입니다.</p>
+            <p>아래의 모의 PDF 영역에서 텍스트를 선택해보세요.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>컨트롤</h2>
+            <button onclick="toggleDebugMode()">디버그 모드 토글</button>
+            <button onclick="clearSelection()">선택 해제</button>
+            <button onclick="showSelectedText()">선택된 텍스트 표시</button>
+        </div>
+
+        <div class="status" id="status">
+            상태: 준비됨
+        </div>
+
+        <div class="test-section">
+            <h2>모의 PDF 뷰어</h2>
+            <div class="pdf-viewer-wrapper" id="pdfViewerWrapper">
+                <canvas class="mock-canvas" id="mockCanvas"></canvas>
+                <div class="pdf-html-container" id="pdfHtmlContainer">
+                    <!-- 텍스트 요소들이 여기에 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>선택된 텍스트</h2>
+            <div id="selectedTextDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 5px; min-height: 50px;">
+                선택된 텍스트가 여기에 표시됩니다.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let debugMode = false;
+        
+        // 모의 텍스트 데이터
+        const mockTextItems = [
+            { str: "PDF 문서 제목", x: 50, y: 50, fontSize: 24, width: 200 },
+            { str: "이것은 첫 번째 단락입니다.", x: 50, y: 100, fontSize: 14, width: 300 },
+            { str: "텍스트 선택이 가능한지 테스트해보세요.", x: 50, y: 130, fontSize: 14, width: 350 },
+            { str: "두 번째 단락입니다.", x: 50, y: 170, fontSize: 14, width: 200 },
+            { str: "마우스로 드래그하여 텍스트를 선택할 수 있습니다.", x: 50, y: 200, fontSize: 14, width: 400 },
+            { str: "더블클릭으로 단어를 선택할 수도 있습니다.", x: 50, y: 230, fontSize: 14, width: 350 }
+        ];
+
+        function initializeMockPDF() {
+            const container = document.getElementById('pdfHtmlContainer');
+            container.innerHTML = '';
+            
+            mockTextItems.forEach((item, index) => {
+                const span = document.createElement('span');
+                span.textContent = item.str;
+                span.className = 'pdf-text-item';
+                span.setAttribute('data-text-index', index);
+                
+                span.style.left = item.x + 'px';
+                span.style.top = item.y + 'px';
+                span.style.fontSize = item.fontSize + 'px';
+                span.style.width = item.width + 'px';
+                span.style.height = item.fontSize + 'px';
+                
+                if (debugMode) {
+                    span.classList.add('debug-mode');
+                }
+                
+                container.appendChild(span);
+            });
+            
+            addTextSelectionEvents(container);
+            updateStatus('모의 PDF 초기화 완료');
+        }
+
+        function addTextSelectionEvents(container) {
+            let isSelecting = false;
+            let selectionStart = null;
+            let selectionEnd = null;
+            
+            container.addEventListener('mousedown', function(e) {
+                if (e.target.classList.contains('pdf-text-item')) {
+                    isSelecting = true;
+                    selectionStart = e.target;
+                    clearTextSelection();
+                    updateStatus('텍스트 선택 시작');
+                }
+            });
+            
+            container.addEventListener('mousemove', function(e) {
+                if (isSelecting && e.target.classList.contains('pdf-text-item')) {
+                    selectionEnd = e.target;
+                    highlightSelection(selectionStart, selectionEnd);
+                }
+            });
+            
+            container.addEventListener('mouseup', function(e) {
+                if (isSelecting) {
+                    isSelecting = false;
+                    finalizeSelection();
+                    updateStatus('텍스트 선택 완료');
+                }
+            });
+            
+            container.addEventListener('dblclick', function(e) {
+                if (e.target.classList.contains('pdf-text-item')) {
+                    selectWord(e.target);
+                    updateStatus('단어 선택됨: ' + e.target.textContent);
+                }
+            });
+        }
+
+        function highlightSelection(start, end) {
+            if (!start || !end) return;
+            
+            const startIndex = parseInt(start.getAttribute('data-text-index'));
+            const endIndex = parseInt(end.getAttribute('data-text-index'));
+            
+            const minIndex = Math.min(startIndex, endIndex);
+            const maxIndex = Math.max(startIndex, endIndex);
+            
+            document.querySelectorAll('.pdf-text-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            for (let i = minIndex; i <= maxIndex; i++) {
+                const item = document.querySelector(`[data-text-index="${i}"]`);
+                if (item) {
+                    item.classList.add('selected');
+                }
+            }
+        }
+
+        function selectWord(element) {
+            clearTextSelection();
+            element.classList.add('selected');
+            
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            showSelectedText();
+        }
+
+        function clearTextSelection() {
+            document.querySelectorAll('.pdf-text-item.selected').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            if (window.getSelection) {
+                window.getSelection().removeAllRanges();
+            }
+            
+            document.getElementById('selectedTextDisplay').textContent = '선택된 텍스트가 없습니다.';
+        }
+
+        function finalizeSelection() {
+            const selectedItems = document.querySelectorAll('.pdf-text-item.selected');
+            if (selectedItems.length > 0) {
+                let selectedText = '';
+                selectedItems.forEach(item => {
+                    selectedText += item.textContent + ' ';
+                });
+                
+                const range = document.createRange();
+                range.setStartBefore(selectedItems[0]);
+                range.setEndAfter(selectedItems[selectedItems.length - 1]);
+                
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                showSelectedText();
+            }
+        }
+
+        function toggleDebugMode() {
+            debugMode = !debugMode;
+            updateStatus('디버그 모드: ' + (debugMode ? '활성화' : '비활성화'));
+            initializeMockPDF();
+        }
+
+        function clearSelection() {
+            clearTextSelection();
+            updateStatus('선택 해제됨');
+        }
+
+        function showSelectedText() {
+            const selectedItems = document.querySelectorAll('.pdf-text-item.selected');
+            const display = document.getElementById('selectedTextDisplay');
+            
+            if (selectedItems.length > 0) {
+                let selectedText = '';
+                selectedItems.forEach(item => {
+                    selectedText += item.textContent + ' ';
+                });
+                display.textContent = '선택된 텍스트: "' + selectedText.trim() + '"';
+            } else {
+                display.textContent = '선택된 텍스트가 없습니다.';
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = '상태: ' + message;
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeMockPDF();
+        });
+    </script>
+</body>
+</html>

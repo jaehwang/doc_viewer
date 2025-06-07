@@ -5,8 +5,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let pdfDoc = null;
 let currentPage = 1;
 let totalPages = 0;
-let canvas = null;
-let ctx = null;
+let pdfViewer = null;
+let pdfLinkService = null;
 let currentFileType = null;
 let currentFileName = null;
 
@@ -63,8 +63,8 @@ const closeToc = document.getElementById('closeToc');
 
 // 초기화
 document.addEventListener('DOMContentLoaded', function() {
-    canvas = document.getElementById('pdfCanvas');
-    ctx = canvas.getContext('2d');
+    // PDF.js 뷰어 초기화
+    initializePDFViewer();
     
     // Mermaid 초기화
     mermaid.initialize({
@@ -75,6 +75,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
 });
+
+// PDF.js 뷰어 초기화
+function initializePDFViewer() {
+    // PDF.js 뷰어 구성 요소가 로드되지 않은 경우 기본 렌더링 사용
+    console.log('PDF.js 기본 렌더링 모드로 초기화');
+}
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
@@ -299,6 +305,8 @@ async function loadPDF(data) {
         showPDFViewer();
         updateNavigationButtons();
         
+        hideLoading();
+        
     } catch (error) {
         console.error('PDF 로드 오류:', error);
         hideLoading();
@@ -314,24 +322,61 @@ async function renderPage(pageNum) {
         const page = await pdfDoc.getPage(pageNum);
         const viewport = page.getViewport({ scale: 1.0 });
         
-        // 캔버스 크기 조정 (반응형)
-        const container = document.querySelector('.pdf-container');
-        const containerWidth = container.clientWidth - 60; // 패딩 고려
-        const containerHeight = window.innerHeight * 0.8; // 화면 높이의 80%
+        // 뷰어 컨테이너에 캔버스 생성
+        const viewerContainer = document.getElementById('viewerContainer');
+        const viewer = document.getElementById('viewer');
+        
+        // 기존 내용 제거
+        viewer.innerHTML = '';
+        
+        // 페이지 컨테이너 생성
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'page';
+        pageDiv.style.position = 'relative';
+        pageDiv.style.margin = '10px auto';
+        
+        // 캔버스 생성
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 컨테이너 크기에 맞춰 스케일 조정
+        const containerWidth = viewerContainer.clientWidth - 60;
+        const containerHeight = window.innerHeight * 0.8;
         
         let scale = Math.min(
             containerWidth / viewport.width,
             containerHeight / viewport.height
         );
         
-        // 최소/최대 스케일 제한
         scale = Math.max(0.5, Math.min(scale, 3.0));
         
         const scaledViewport = page.getViewport({ scale: scale });
         
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
+        canvas.style.display = 'block';
+        canvas.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
         
+        pageDiv.appendChild(canvas);
+        
+        // 텍스트 레이어 컨테이너 생성
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        textLayerDiv.style.position = 'absolute';
+        textLayerDiv.style.left = '0';
+        textLayerDiv.style.top = '0';
+        textLayerDiv.style.right = '0';
+        textLayerDiv.style.bottom = '0';
+        textLayerDiv.style.overflow = 'hidden';
+        textLayerDiv.style.opacity = '0.2';
+        textLayerDiv.style.lineHeight = '1.0';
+        textLayerDiv.style.userSelect = 'text';
+        textLayerDiv.style.pointerEvents = 'auto';
+        
+        pageDiv.appendChild(textLayerDiv);
+        viewer.appendChild(pageDiv);
+        
+        // 캔버스 렌더링
         const renderContext = {
             canvasContext: ctx,
             viewport: scaledViewport
@@ -339,7 +384,8 @@ async function renderPage(pageNum) {
         
         await page.render(renderContext).promise;
         
-        await renderPDFAsHTML(page, scaledViewport);
+        // 텍스트 레이어 렌더링
+        await renderTextLayer(page, scaledViewport, textLayerDiv);
         
         hideLoading();
         
@@ -350,56 +396,49 @@ async function renderPage(pageNum) {
     }
 }
 
-async function renderPDFAsHTML(page, viewport) {
+// 텍스트 레이어 렌더링
+async function renderTextLayer(page, viewport, textLayerDiv) {
     try {
         const textContent = await page.getTextContent();
-        const pdfContainer = document.getElementById('pdfContainer');
-        
-        let htmlContainer = document.getElementById('pdfHtmlContainer');
-        if (!htmlContainer) {
-            htmlContainer = document.createElement('div');
-            htmlContainer.id = 'pdfHtmlContainer';
-            htmlContainer.className = 'pdf-html-container';
-            pdfContainer.appendChild(htmlContainer);
-        }
-        
-        htmlContainer.innerHTML = '';
-        htmlContainer.style.width = viewport.width + 'px';
-        htmlContainer.style.height = viewport.height + 'px';
         
         textContent.items.forEach(function(textItem) {
+            if (!textItem.str || textItem.str.trim() === '') {
+                return;
+            }
+            
+            // PDF.js 표준 변환 사용
             const tx = pdfjsLib.Util.transform(
                 pdfjsLib.Util.transform(viewport.transform, textItem.transform),
                 [1, 0, 0, -1, 0, 0]
             );
             
-            const style = textContent.styles[textItem.fontName];
-            const angle = Math.atan2(tx[1], tx[0]);
-            const fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
+            const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
             
+            // 텍스트 요소 생성
             const span = document.createElement('span');
             span.textContent = textItem.str;
-            span.className = 'pdf-text-item';
             span.style.position = 'absolute';
             span.style.left = tx[4] + 'px';
             span.style.top = (tx[5] - fontHeight) + 'px';
             span.style.fontSize = fontHeight + 'px';
-            span.style.fontFamily = style.fontFamily || 'sans-serif';
+            span.style.fontFamily = 'sans-serif';
             span.style.color = 'transparent';
             span.style.userSelect = 'text';
             span.style.cursor = 'text';
+            span.style.whiteSpace = 'pre';
+            span.style.pointerEvents = 'auto';
+            span.style.transformOrigin = '0% 0%';
             
-            if (angle !== 0) {
-                span.style.transform = 'rotate(' + angle + 'rad)';
-            }
-            
-            htmlContainer.appendChild(span);
+            textLayerDiv.appendChild(span);
         });
         
+        console.log('텍스트 레이어 생성 완료. 텍스트 요소 수:', textLayerDiv.children.length);
+        
     } catch (error) {
-        console.error('PDF HTML 렌더링 오류:', error);
+        console.error('텍스트 레이어 렌더링 오류:', error);
     }
 }
+
 
 // 이전 페이지
 function showPrevPage() {
@@ -651,17 +690,11 @@ function showViewerSection() {
 // 로딩 표시
 function showLoading() {
     loading.style.display = 'flex';
-    if (currentFileType === 'pdf') {
-        canvas.style.display = 'none';
-    }
 }
 
 // 로딩 숨김
 function hideLoading() {
     loading.style.display = 'none';
-    if (currentFileType === 'pdf') {
-        canvas.style.display = 'block';
-    }
 }
 
 // 에러 메시지 표시

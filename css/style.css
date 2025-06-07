@@ -230,21 +230,125 @@ body {
     top: 0;
     left: 0;
     pointer-events: auto;
-    z-index: 1;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
 }
 
 .pdf-text-item {
+    position: absolute;
     white-space: pre;
     line-height: 1;
     pointer-events: auto;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    cursor: text;
+    color: rgba(0, 0, 0, 0.001);
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    margin: 0;
+    padding: 0;
+    transform-origin: left bottom;
+    -webkit-touch-callout: text;
+    -webkit-user-drag: none;
+}
+
+.pdf-text-item:hover {
+    background: rgba(0, 123, 255, 0.1);
 }
 
 .pdf-text-item::-moz-selection {
-    background: rgba(0, 123, 255, 0.3);
+    background: rgba(0, 123, 255, 0.4);
+    color: rgba(0, 0, 0, 0.8);
 }
 
 .pdf-text-item::selection {
-    background: rgba(0, 123, 255, 0.3);
+    background: rgba(0, 123, 255, 0.4);
+    color: rgba(0, 0, 0, 0.8);
+}
+
+/* 선택된 텍스트 스타일 */
+.pdf-text-item.selected {
+    background: rgba(0, 123, 255, 0.3) !important;
+    color: rgba(0, 0, 0, 0.9) !important;
+    border-radius: 2px;
+}
+
+/* PDF.js 공식 텍스트 레이어 스타일 */
+.textLayer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    opacity: 0.2;
+    line-height: 1.0;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    pointer-events: auto;
+}
+
+.textLayer > span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+}
+
+.textLayer .highlight {
+    margin: -1px;
+    padding: 1px;
+    background-color: rgba(180, 0, 170, 1);
+    border-radius: 4px;
+}
+
+.textLayer .highlight.begin {
+    border-radius: 4px 0px 0px 4px;
+}
+
+.textLayer .highlight.end {
+    border-radius: 0px 4px 4px 0px;
+}
+
+.textLayer .highlight.middle {
+    border-radius: 0px;
+}
+
+.textLayer .highlight.selected {
+    background-color: rgba(0, 100, 0, 1);
+}
+
+/* 텍스트 선택 개선 */
+.pdf-html-container * {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* PDF 캔버스와 텍스트 레이어 컨테이너 */
+.pdf-viewer-wrapper {
+    position: relative;
+    display: inline-block;
+    background: white;
+}
+
+#pdfCanvas {
+    display: block;
+    position: relative;
+    z-index: 1;
 }
 
 .upload-btn:hover {
@@ -372,6 +476,45 @@ body {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
     border-radius: 8px;
     background-color: white;
+}
+
+/* PDF.js 뷰어 컨테이너 */
+#viewerContainer {
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#viewer {
+    width: 100%;
+    height: 100%;
+}
+
+.pdfViewer {
+    padding-bottom: 0;
+}
+
+.pdfViewer .page {
+    direction: ltr;
+    width: 816px;
+    height: 1056px;
+    margin: 1px auto -8px auto;
+    position: relative;
+    overflow: visible;
+    border: 9px solid transparent;
+    background-clip: content-box;
+    background-color: white;
+}
+
+.pdfViewer.removePageBorders .page {
+    margin: 0px auto 10px auto;
+    border: none;
+}
+
+.pdfViewer .page canvas {
+    margin: 0;
+    display: block;
 }
 
 /* 로딩 애니메이션 */

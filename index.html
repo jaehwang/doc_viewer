@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF.js 뷰어 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.css">
+    <!-- PDF.js 뷰어 JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js"></script>
     <!-- Marked.js for Markdown parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     <!-- Mermaid.js for diagram rendering -->
@@ -114,8 +118,8 @@
 
             <!-- PDF 뷰어 -->
             <div class="pdf-container" id="pdfContainer">
-                <div class="pdf-viewer-wrapper">
-                    <canvas id="pdfCanvas"></canvas>
+                <div id="viewerContainer" class="pdfViewer">
+                    <div id="viewer" class="pdfViewer"></div>
                 </div>
                 <div class="loading" id="loading" style="display: none;">
                     <div class="spinner"></div>
