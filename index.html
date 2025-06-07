@@ -41,7 +41,7 @@
                         <p>PDF 또는 Markdown 파일을 여기에 드래그하거나 클릭하여 선택하세요</p>
                         <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
                         <input type="file" id="fileInput" accept=".pdf,.md,.markdown" style="display: none;">
-                        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                        <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
                             파일 선택
                         </button>
                     </div>
@@ -58,7 +58,7 @@
                             <p>비교할 원본 문서를 선택하세요</p>
                             <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
                             <input type="file" id="oldFileInput" accept=".pdf,.md,.markdown" style="display: none;">
-                            <button class="upload-btn" onclick="document.getElementById('oldFileInput').click()">
+                            <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('oldFileInput').click()">
                                 파일 선택
                             </button>
                             <div class="file-status" id="oldFileStatus"></div>
@@ -71,7 +71,7 @@
                             <p>비교할 새 문서를 선택하세요</p>
                             <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
                             <input type="file" id="newFileInput" accept=".pdf,.md,.markdown" style="display: none;">
-                            <button class="upload-btn" onclick="document.getElementById('newFileInput').click()">
+                            <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('newFileInput').click()">
                                 파일 선택
                             </button>
                             <div class="file-status" id="newFileStatus"></div>
