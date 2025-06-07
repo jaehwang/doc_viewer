@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     setupEventListeners();
+
 });
 
 // PDF.js 뷰어 초기화
@@ -266,27 +267,44 @@ function handleComparisonFile(file, type) {
 }
 
 // PDF 파일 처리
-function handlePDFFile(file) {
-    // 파일 크기 검증 (50MB 제한)
-    if (file.size > 50 * 1024 * 1024) {
-        showError('파일 크기가 너무 큽니다. 50MB 이하의 파일을 선택해주세요.');
-        return;
+async function handlePDFFile(fileOrPath) {
+    let data;
+    let fileNameToDisplay;
+
+    if (typeof fileOrPath === 'string') { // 경로가 주어진 경우 (자동 로드용)
+        fileNameToDisplay = fileOrPath.split('/').pop();
+        try {
+            const response = await fetch(fileOrPath);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            data = new Uint8Array(arrayBuffer);
+        } catch (error) {
+            hideLoading();
+            showError(`파일을 로드하는 중 오류가 발생했습니다: ${error.message}`);
+            console.error('Fetch 오류:', error);
+            return;
+        }
+    } else { // File 객체가 주어진 경우 (사용자 업로드용)
+        fileNameToDisplay = fileOrPath.name;
+        // 파일 크기 검증 (50MB 제한)
+        if (fileOrPath.size > 50 * 1024 * 1024) {
+            showError('파일 크기가 너무 큽니다. 50MB 이하의 파일을 선택해주세요.');
+            return;
+        }
+        
+        data = await new Promise((resolve, reject) => {
+            const fileReader = new FileReader();
+            fileReader.onload = (e) => resolve(new Uint8Array(e.target.result));
+            fileReader.onerror = (e) => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
+            fileReader.readAsArrayBuffer(fileOrPath);
+        });
     }
     
+    currentFileName = fileNameToDisplay; // 파일 이름 설정
     showLoading();
-    
-    const fileReader = new FileReader();
-    fileReader.onload = function(e) {
-        const typedarray = new Uint8Array(e.target.result);
-        loadPDF(typedarray);
-    };
-    
-    fileReader.onerror = function() {
-        hideLoading();
-        showError('파일을 읽는 중 오류가 발생했습니다.');
-    };
-    
-    fileReader.readAsArrayBuffer(file);
+    loadPDF(data);
 }
 
 // Markdown 파일 처리
@@ -316,7 +334,11 @@ function handleMarkdownFile(file) {
 // PDF 로드
 async function loadPDF(data) {
     try {
-        pdfDoc = await pdfjsLib.getDocument(data).promise;
+        pdfDoc = await pdfjsLib.getDocument({
+            data: data,
+            cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
+            cMapPacked: true
+        }).promise;
         totalPages = pdfDoc.numPages;
         currentPage = 1;
         
