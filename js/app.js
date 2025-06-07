@@ -28,6 +28,7 @@ const nextBtn = document.getElementById('nextBtn');
 const pageInput = document.getElementById('pageInput');
 const totalPagesSpan = document.getElementById('totalPages');
 const newFileBtn = document.getElementById('newFileBtn');
+const textLayer = document.getElementById('textLayer');
 const loading = document.getElementById('loading');
 const errorMessage = document.getElementById('errorMessage');
 const errorText = document.getElementById('errorText');
@@ -337,12 +338,60 @@ async function renderPage(pageNum) {
         };
         
         await page.render(renderContext).promise;
+        
+        await renderTextLayer(page, scaledViewport);
+        
         hideLoading();
         
     } catch (error) {
         console.error('페이지 렌더링 오류:', error);
         hideLoading();
         showError('페이지를 렌더링할 수 없습니다.');
+    }
+}
+
+async function renderTextLayer(page, viewport) {
+    try {
+        textLayer.innerHTML = '';
+        
+        const textContent = await page.getTextContent();
+        
+        textLayer.style.width = viewport.width + 'px';
+        textLayer.style.height = viewport.height + 'px';
+        
+        textContent.items.forEach(function(textItem) {
+            const tx = pdfjsLib.Util.transform(
+                pdfjsLib.Util.transform(viewport.transform, textItem.transform),
+                [1, 0, 0, -1, 0, 0]
+            );
+            
+            const style = textContent.styles[textItem.fontName];
+            const angle = Math.atan2(tx[1], tx[0]);
+            
+            if (style.vertical) {
+                angle += Math.PI / 2;
+            }
+            
+            const fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
+            const fontAscent = fontHeight;
+            
+            const span = document.createElement('span');
+            span.textContent = textItem.str;
+            span.style.position = 'absolute';
+            span.style.left = tx[4] + 'px';
+            span.style.top = (tx[5] - fontAscent) + 'px';
+            span.style.fontSize = fontHeight + 'px';
+            span.style.fontFamily = style.fontFamily || 'sans-serif';
+            
+            if (angle !== 0) {
+                span.style.transform = 'rotate(' + angle + 'rad)';
+            }
+            
+            textLayer.appendChild(span);
+        });
+        
+    } catch (error) {
+        console.error('텍스트 레이어 렌더링 오류:', error);
     }
 }
 
