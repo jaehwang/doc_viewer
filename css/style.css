@@ -185,25 +185,27 @@ body {
 }
 
 .upload-content {
-    pointer-events: none;
 }
 
 .upload-icon {
     font-size: 4rem;
     margin-bottom: 20px;
     opacity: 0.7;
+    pointer-events: none;
 }
 
 .upload-area p {
     font-size: 1.2rem;
     color: #7f8c8d;
     margin-bottom: 15px;
+    pointer-events: none;
 }
 
 .file-types {
     font-size: 0.95rem !important;
     color: #95a5a6 !important;
     margin-bottom: 25px !important;
+    pointer-events: none;
 }
 
 .upload-btn {
