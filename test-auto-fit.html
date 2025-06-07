@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 자동 피팅 테스트</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>PDF 자동 피팅 테스트</h1>
+            <p class="subtitle">PDF 문서의 크기와 방향에 맞게 자동으로 조정됩니다</p>
+        </header>
+
+        <div class="test-buttons" style="text-align: center; margin-bottom: 30px;">
+            <button onclick="loadTestPDF('test-new.pdf')" style="margin: 10px; padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                test-new.pdf 로드
+            </button>
+            <button onclick="loadTestPDF('test-old.pdf')" style="margin: 10px; padding: 12px 24px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                test-old.pdf 로드
+            </button>
+        </div>
+
+        <!-- 뷰어 영역 -->
+        <div class="viewer-section" id="viewerSection" style="display: none;">
+            <!-- 컨트롤 패널 -->
+            <div class="controls">
+                <div class="file-info">
+                    <span id="fileName" class="file-name"></span>
+                    <span id="fileType" class="file-type">PDF</span>
+                </div>
+                <div class="nav-controls" id="pdfNavControls">
+                    <button id="prevBtn" class="nav-btn" disabled onclick="showPrevPage()">◀ 이전</button>
+                    <span class="page-info">
+                        <input type="number" id="pageInput" min="1" value="1" class="page-input" onchange="goToPage()">
+                        <span> / </span>
+                        <span id="totalPages">0</span>
+                    </span>
+                    <button id="nextBtn" class="nav-btn" disabled onclick="showNextPage()">다음 ▶</button>
+                </div>
+                <div class="file-controls">
+                    <button onclick="location.reload()" class="control-btn">새로고침</button>
+                </div>
+            </div>
+
+            <!-- PDF 뷰어 -->
+            <div class="pdf-container" id="pdfContainer">
+                <div id="viewerContainer" class="pdfViewer">
+                    <div id="viewer" class="pdfViewer"></div>
+                </div>
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>문서를 로딩 중입니다...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div class="error-message" id="errorMessage" style="display: none;">
+            <p id="errorText"></p>
+            <button onclick="hideError()">확인</button>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // 테스트용 PDF 로드 함수
+        async function loadTestPDF(filename) {
+            try {
+                showLoading();
+                
+                const response = await fetch(filename);
+                if (!response.ok) {
+                    throw new Error('PDF 파일을 찾을 수 없습니다.');
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const typedarray = new Uint8Array(arrayBuffer);
+                
+                currentFileName = filename;
+                await loadPDF(typedarray);
+                
+            } catch (error) {
+                console.error('PDF 로드 오류:', error);
+                hideLoading();
+                showError('PDF 파일을 로드할 수 없습니다: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

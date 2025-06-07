@@ -106,6 +106,22 @@
                         <span id="totalPages">0</span>
                     </span>
                     <button id="nextBtn" class="nav-btn" disabled>다음 ▶</button>
+                    
+                    <div class="zoom-controls">
+                        <button id="zoomOutBtn" class="zoom-btn" title="축소">−</button>
+                        <select id="zoomSelect" class="zoom-select">
+                            <option value="auto">자동</option>
+                            <option value="page-width">페이지 너비</option>
+                            <option value="page-fit">페이지 맞춤</option>
+                            <option value="0.5">50%</option>
+                            <option value="0.75">75%</option>
+                            <option value="1.0">100%</option>
+                            <option value="1.25">125%</option>
+                            <option value="1.5">150%</option>
+                            <option value="2.0">200%</option>
+                        </select>
+                        <button id="zoomInBtn" class="zoom-btn" title="확대">+</button>
+                    </div>
                 </div>
                 <div class="nav-controls" id="markdownNavControls" style="display: none;">
                     <button id="tocToggle" class="nav-btn">📋 목차</button>

@@ -10,6 +10,11 @@ let pdfLinkService = null;
 let currentFileType = null;
 let currentFileName = null;
 
+// 줌 관련 변수
+let currentZoom = 'auto';
+let currentScale = 1.0;
+let zoomLevels = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0];
+
 let comparisonMode = false;
 let oldDocument = null;
 let newDocument = null;
@@ -78,8 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // PDF.js 뷰어 초기화
 function initializePDFViewer() {
-    // PDF.js 뷰어 구성 요소가 로드되지 않은 경우 기본 렌더링 사용
-    console.log('PDF.js 기본 렌더링 모드로 초기화');
+    // PDF.js 뷰어 구성 요소 초기화
+    console.log('PDF.js 뷰어 초기화');
 }
 
 // 이벤트 리스너 설정
@@ -135,6 +140,28 @@ function setupEventListeners() {
     
     // 키보드 이벤트
     document.addEventListener('keydown', handleKeyboard);
+    
+    // 줌 컨트롤 이벤트 리스너 설정
+    setupZoomControls();
+}
+
+// 줌 컨트롤 이벤트 리스너 설정
+function setupZoomControls() {
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomSelect = document.getElementById('zoomSelect');
+    
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', zoomOut);
+    }
+    
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', zoomIn);
+    }
+    
+    if (zoomSelect) {
+        zoomSelect.addEventListener('change', handleZoomChange);
+    }
 }
 
 // 드래그 오버 처리
@@ -298,12 +325,15 @@ async function loadPDF(data) {
         pageInput.value = currentPage;
         pageInput.max = totalPages;
         
-        // 첫 번째 페이지 렌더링
-        await renderPage(currentPage);
-        
-        // PDF 뷰어 표시
+        // PDF 뷰어를 먼저 표시하여 컨테이너 준비
         showPDFViewer();
         updateNavigationButtons();
+        
+        // 컨테이너가 준비될 때까지 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // 첫 번째 페이지 렌더링
+        await renderPage(currentPage);
         
         hideLoading();
         
@@ -320,42 +350,65 @@ async function renderPage(pageNum) {
         showLoading();
         
         const page = await pdfDoc.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.0 });
-        
-        // 뷰어 컨테이너에 캔버스 생성
         const viewerContainer = document.getElementById('viewerContainer');
         const viewer = document.getElementById('viewer');
         
         // 기존 내용 제거
         viewer.innerHTML = '';
         
+        let scaleToUse = 1.0;
+        let viewport = page.getViewport({ scale: 1.0 });
+        
+        // 현재 줌 설정에 따라 스케일 결정
+        if (currentZoom === 'auto') {
+            scaleToUse = calculateOptimalScale(viewport, viewerContainer);
+        } else if (currentZoom === 'page-width') {
+            scaleToUse = (viewerContainer.clientWidth - 80) / viewport.width;
+        } else if (currentZoom === 'page-fit') {
+            scaleToUse = calculateOptimalScale(viewport, viewerContainer); // 'auto'와 동일하게 처리
+        } else {
+            scaleToUse = currentScale; // 고정 스케일 사용
+        }
+        
+        const scaledViewport = page.getViewport({ scale: scaleToUse });
+        
+        // 뷰어 컨테이너 크기 동적 조정 (자동/페이지 너비/페이지 맞춤 모드에서만)
+        if (currentZoom === 'auto' || currentZoom === 'page-width' || currentZoom === 'page-fit') {
+            const isLandscape = viewport.width > viewport.height;
+            adjustViewerContainer(viewport, isLandscape);
+        } else {
+            // 고정 스케일 모드에서는 컨테이너 크기 조정하지 않음
+            const pdfContainer = document.getElementById('pdfContainer');
+            pdfContainer.style.width = 'auto';
+            pdfContainer.style.height = 'auto';
+            pdfContainer.style.padding = '20px';
+            viewerContainer.style.width = 'auto';
+            viewerContainer.style.height = 'auto';
+        }
+        
         // 페이지 컨테이너 생성
         const pageDiv = document.createElement('div');
         pageDiv.className = 'page';
         pageDiv.style.position = 'relative';
-        pageDiv.style.margin = '10px auto';
+        pageDiv.style.margin = '0 auto';
+        pageDiv.style.display = 'flex';
+        pageDiv.style.justifyContent = 'center';
+        pageDiv.style.alignItems = 'center';
         
         // 캔버스 생성
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        // 컨테이너 크기에 맞춰 스케일 조정
-        const containerWidth = viewerContainer.clientWidth - 60;
-        const containerHeight = window.innerHeight * 0.8;
-        
-        let scale = Math.min(
-            containerWidth / viewport.width,
-            containerHeight / viewport.height
-        );
-        
-        scale = Math.max(0.5, Math.min(scale, 3.0));
-        
-        const scaledViewport = page.getViewport({ scale: scale });
-        
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
         canvas.style.display = 'block';
         canvas.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+        canvas.style.borderRadius = '4px';
+        canvas.style.backgroundColor = 'white';
+        
+        // 페이지 컨테이너 크기를 캔버스에 맞게 조정
+        pageDiv.style.width = scaledViewport.width + 'px';
+        pageDiv.style.height = scaledViewport.height + 'px';
         
         pageDiv.appendChild(canvas);
         
@@ -365,8 +418,8 @@ async function renderPage(pageNum) {
         textLayerDiv.style.position = 'absolute';
         textLayerDiv.style.left = '0';
         textLayerDiv.style.top = '0';
-        textLayerDiv.style.right = '0';
-        textLayerDiv.style.bottom = '0';
+        textLayerDiv.style.width = scaledViewport.width + 'px';
+        textLayerDiv.style.height = scaledViewport.height + 'px';
         textLayerDiv.style.overflow = 'hidden';
         textLayerDiv.style.opacity = '0.2';
         textLayerDiv.style.lineHeight = '1.0';
@@ -389,11 +442,83 @@ async function renderPage(pageNum) {
         
         hideLoading();
         
+        console.log(`페이지 ${pageNum} 렌더링 완료 (스케일: ${scaleToUse}, 줌 모드: ${currentZoom})`);
+        
     } catch (error) {
         console.error('페이지 렌더링 오류:', error);
         hideLoading();
         showError('페이지를 렌더링할 수 없습니다.');
     }
+}
+
+// 뷰어 컨테이너 크기 동적 조정
+function adjustViewerContainer(viewport, isLandscape) {
+    const viewerContainer = document.getElementById('viewerContainer');
+    const pdfContainer = document.getElementById('pdfContainer');
+    
+    // 컨테이너 스타일 초기화
+    viewerContainer.style.width = '100%';
+    viewerContainer.style.height = '100%';
+    viewerContainer.style.display = 'flex';
+    viewerContainer.style.justifyContent = 'center';
+    viewerContainer.style.alignItems = 'center';
+    viewerContainer.style.padding = '20px';
+    
+    // PDF 컨테이너 스타일 조정
+    pdfContainer.style.display = 'flex';
+    pdfContainer.style.justifyContent = 'center';
+    pdfContainer.style.alignItems = 'center';
+    pdfContainer.style.minHeight = '600px';
+    pdfContainer.style.height = 'auto';
+    
+    // 방향에 따른 추가 조정
+    if (isLandscape) {
+        pdfContainer.style.padding = '20px 10px';
+    } else {
+        pdfContainer.style.padding = '30px 20px';
+    }
+}
+
+// 최적 스케일 계산
+function calculateOptimalScale(viewport, container) {
+    // 컨테이너 크기 확인 및 fallback
+    let containerWidth = container.clientWidth || 800; // fallback 크기
+    let containerHeight = container.clientHeight || 600; // fallback 크기
+    
+    // 컨테이너가 숨겨져 있거나 크기가 0인 경우 기본값 사용
+    if (containerWidth <= 0) {
+        containerWidth = Math.min(window.innerWidth * 0.8, 800);
+    }
+    if (containerHeight <= 0) {
+        containerHeight = Math.min(window.innerHeight * 0.7, 600);
+    }
+    
+    // 패딩 고려
+    const availableWidth = containerWidth - 80;
+    const availableHeight = containerHeight - 80;
+    
+    // 가로/세로 스케일 계산
+    const scaleX = availableWidth / viewport.width;
+    const scaleY = availableHeight / viewport.height;
+    
+    // 더 작은 스케일을 선택하여 전체 페이지가 보이도록 함
+    let optimalScale = Math.min(scaleX, scaleY);
+    
+    // 스케일 범위 제한 (최소 0.5, 최대 2.0)
+    optimalScale = Math.max(0.5, Math.min(optimalScale, 2.0));
+    
+    // 디버그 로그
+    console.log('스케일 계산:', {
+        containerWidth,
+        containerHeight,
+        viewportWidth: viewport.width,
+        viewportHeight: viewport.height,
+        scaleX,
+        scaleY,
+        optimalScale
+    });
+    
+    return optimalScale;
 }
 
 // 텍스트 레이어 렌더링
@@ -858,6 +983,114 @@ window.addEventListener('resize', function() {
         }, 100);
     }
 });
+
+// 줌 기능 구현
+function zoomIn() {
+    if (!pdfDoc) return;
+    
+    const currentIndex = zoomLevels.indexOf(currentScale);
+    if (currentIndex < zoomLevels.length - 1) {
+        currentScale = zoomLevels[currentIndex + 1];
+        currentZoom = currentScale.toString();
+        updateZoomUI();
+        renderPage(currentPage);
+    }
+}
+
+function zoomOut() {
+    if (!pdfDoc) return;
+    
+    const currentIndex = zoomLevels.indexOf(currentScale);
+    if (currentIndex > 0) {
+        currentScale = zoomLevels[currentIndex - 1];
+        currentZoom = currentScale.toString();
+        updateZoomUI();
+        renderPage(currentPage);
+    }
+}
+
+function handleZoomChange() {
+    if (!pdfDoc) return;
+    
+    const zoomSelect = document.getElementById('zoomSelect');
+    const selectedValue = zoomSelect.value;
+    
+    currentZoom = selectedValue;
+    
+    if (selectedValue === 'auto' || selectedValue === 'page-fit' || selectedValue === 'page-width') {
+        // 자동 모드는 기존 로직 사용
+        renderPage(currentPage);
+    } else {
+        // 고정 스케일 모드
+        currentScale = parseFloat(selectedValue);
+        renderPage(currentPage); // renderPageWithScale 대신 renderPage 호출
+    }
+    
+    updateZoomButtons();
+}
+
+function updateZoomUI() {
+    const zoomSelect = document.getElementById('zoomSelect');
+    if (zoomSelect) {
+        zoomSelect.value = currentZoom;
+    }
+    updateZoomButtons();
+}
+
+function updateZoomButtons() {
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    
+    if (zoomOutBtn && zoomInBtn) {
+        const currentIndex = zoomLevels.indexOf(currentScale);
+        zoomOutBtn.disabled = currentIndex <= 0 || currentZoom === 'auto' || currentZoom === 'page-fit' || currentZoom === 'page-width';
+        zoomInBtn.disabled = currentIndex >= zoomLevels.length - 1 || currentZoom === 'auto' || currentZoom === 'page-fit' || currentZoom === 'page-width';
+    }
+}
+
+
+// 키보드 줌 단축키 추가
+function handleKeyboard(e) {
+    if (!pdfDoc) return;
+    
+    // Ctrl/Cmd + Plus/Minus로 줌 조정
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        zoomIn();
+        return;
+    }
+    
+    if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+        e.preventDefault();
+        zoomOut();
+        return;
+    }
+    
+    switch(e.key) {
+        case 'ArrowLeft':
+            e.preventDefault();
+            showPrevPage();
+            break;
+        case 'ArrowRight':
+            e.preventDefault();
+            showNextPage();
+            break;
+        case 'Home':
+            e.preventDefault();
+            currentPage = 1;
+            pageInput.value = currentPage;
+            renderPage(currentPage);
+            updateNavigationButtons();
+            break;
+        case 'End':
+            e.preventDefault();
+            currentPage = totalPages;
+            pageInput.value = currentPage;
+            renderPage(currentPage);
+            updateNavigationButtons();
+            break;
+    }
+}
 
 // 페이지 언로드 시 정리
 window.addEventListener('beforeunload', function() {
