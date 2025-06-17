@@ -61,3 +61,9 @@ export function showMarkdownViewer() {
     // 뷰어 섹션 표시
     showViewerSection();
 }
+
+// 뷰어 섹션 표시
+export function showViewerSection() {
+    uploadSection.style.display = 'none';
+    viewerSection.style.display = 'block';
+}

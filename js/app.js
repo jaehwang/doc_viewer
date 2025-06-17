@@ -76,6 +76,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     setupEventListeners();
+    
+    // 테스트용: 자동으로 테스트 PDF 로드
+    setTimeout(() => {
+        handlePDFFile('test-new.pdf');
+    }, 1000);
 });
 
 // 이벤트 리스너 설정
@@ -309,6 +314,7 @@ async function handlePDFFile(fileOrPath) {
 
 // Markdown 파일 처리
 function handleMarkdownFile(file) {
+    
     // 파일 크기 검증 (10MB 제한)
     if (file.size > 10 * 1024 * 1024) {
         showError('파일 크기가 너무 큽니다. 10MB 이하의 파일을 선택해주세요.');
@@ -316,11 +322,12 @@ function handleMarkdownFile(file) {
     }
     
     showLoading();
+    currentFileName = file.name; // 전역 변수에 파일 이름 설정
     
     const fileReader = new FileReader();
     fileReader.onload = function(e) {
         const markdownText = e.target.result;
-        loadMarkdown(markdownText);
+        loadMarkdown(markdownText, file.name); // 파일 이름 전달
     };
     
     fileReader.onerror = function() {
@@ -331,46 +338,21 @@ function handleMarkdownFile(file) {
     fileReader.readAsText(file, 'UTF-8');
 }
 
-// 키보드 이벤트 처리
-function handleKeyboard(e) {
-    if (!pdfViewer.getPdfDoc()) return;
-    
-    // Ctrl/Cmd + Plus/Minus로 줌 조정
-    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
-        e.preventDefault();
-        pdfViewer.zoomIn();
-        return;
-    }
-    
-    if ((e.ctrlKey || e.metaKey) && e.key === '-') {
-        e.preventDefault();
-        pdfViewer.zoomOut();
-        return;
-    }
-    
-    switch(e.key) {
-        case 'ArrowLeft':
-            e.preventDefault();
-            pdfViewer.showPrevPage();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            pdfViewer.showNextPage();
-            break;
-        case 'Home':
-            e.preventDefault();
-            // 첫 페이지로 이동하는 로직은 모듈에 추가해야 함
-            break;
-        case 'End':
-            e.preventDefault();
-            // 마지막 페이지로 이동하는 로직은 모듈에 추가해야 함
-            break;
-    }
-}
-
 // Markdown 로드
-async function loadMarkdown(markdownText) {
+async function loadMarkdown(markdownText, fileName) {
     try {
+        // 파일 이름이 전달되지 않은 경우 기본값 설정
+        if (!fileName && (typeof currentFileName === 'undefined' || currentFileName === null)) {
+            window.currentFileName = 'untitled.md';
+        } else if (fileName) {
+            window.currentFileName = fileName;
+        }
+        
+        // UI 업데이트
+        if (fileName) {
+            document.getElementById('fileName').textContent = fileName;
+        }
+        
         // Marked 설정
         marked.setOptions({
             breaks: true,
@@ -395,16 +377,13 @@ async function loadMarkdown(markdownText) {
         
         // 목차 생성
         generateTableOfContents();
-        
-        // 뷰어 섹션 표시
         showMarkdownViewer();
-        
         hideLoading();
         
     } catch (error) {
-        console.error('Markdown 로드 오류:', error);
+        console.error('Markdown 로드 중 오류 발생:', error);
         hideLoading();
-        showError('Markdown 파일을 로드할 수 없습니다.');
+        showError(`Markdown 파일을 로드할 수 없습니다: ${error.message}`);
     }
 }
 
