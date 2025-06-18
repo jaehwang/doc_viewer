@@ -1,5 +1,5 @@
 import * as pdfViewer from './pdf-viewer.js';
-import { showLoading, hideLoading, showError, showPDFViewer, showMarkdownViewer } from './ui.js';
+import { showLoading, hideLoading, showError, hideError, showPDFViewer, showMarkdownViewer } from './ui.js';
 
 // PDF.js 워커 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 테스트용: 자동으로 테스트 PDF 로드
     setTimeout(() => {
-        handlePDFFile('test-new.pdf');
+        handlePDFFile('tests/docs/test-new.pdf');
     }, 1000);
 });
 
@@ -304,6 +304,8 @@ async function handlePDFFile(fileOrPath) {
     }
     
     currentFileName = fileNameToDisplay; // 파일 이름 설정
+    window.currentFileName = fileNameToDisplay; // 전역 변수 업데이트
+    currentFileType = 'pdf'; // 파일 타입 설정
     showLoading();
     
     // 모듈 함수 사용
@@ -676,3 +678,8 @@ window.addEventListener('beforeunload', function() {
         pdfDoc.destroy();
     }
 });
+
+window.hideError = hideError;
+window.switchMode = switchMode;
+window.compareDocuments = compareDocuments;
+window.currentFileName = currentFileName;
