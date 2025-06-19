@@ -71,6 +71,9 @@ export async function loadPDF(data) {
         // 첫 번째 페이지 렌더링
         await renderPage(currentPage);
         
+        // 네비게이션 버튼 상태 초기화
+        updateNavigationButtons();
+        
     } catch (error) {
         console.error('PDF 로드 오류:', error);
         uiCallbacks.showError('PDF 파일을 로드할 수 없습니다. 파일이 손상되었거나 지원되지 않는 형식일 수 있습니다.');
