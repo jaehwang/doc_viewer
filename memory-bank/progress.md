@@ -2,80 +2,43 @@
 
 ## What Works
 
-(README.md의 "지원 기능" 섹션을 기반으로, 현재 구현 완료된 것으로 간주되는 기능들을 나열합니다. 실제 코드 확인 전까지는 README.md의 설명을 기준으로 합니다.)
-
-*   **PDF 뷰어**:
-    *   PDF.js를 사용한 고품질 렌더링
-    *   페이지 네비게이션 (이전/다음, 특정 페이지 이동)
-    *   반응형 스케일링
-    *   키보드 단축키 (화살표, Home, End)
-*   **Markdown 뷰어**:
-    *   GitHub Flavored Markdown (GFM) 지원
-    *   Mermaid 다이어그램 자동 렌더링 (플로우차트, 시퀀스, 간트, 클래스, 상태, 파이 차트)
-    *   Prism.js를 사용한 코드 하이라이팅 (다양한 언어)
-    *   헤딩 기반 자동 목차 생성 및 네비게이션
-    *   스마트 링크 (목차 클릭 시 부드러운 스크롤)
-*   **문서 비교**:
-    *   PDF 문서 간 텍스트 비교
-    *   Markdown 문서 간 텍스트 비교
-    *   단어 단위 정밀 차이 분석 (jsdiff 활용)
-    *   추가/삭제 내용 시각적 구분 (색상 및 취소선)
-    *   실시간 비교 결과 표시
-    *   드래그 앤 드롭 파일 업로드 (비교 대상 파일)
-    *   동일 형식 문서 검증
-    *   비교 결과 범례 표시
-*   **사용자 인터페이스**:
-    *   드래그 앤 드롭 파일 업로드 (메인 뷰어)
-    *   반응형 디자인 (데스크톱, 태블릿, 모바일)
-    *   직관적 네비게이션 및 파일 타입별 최적화된 컨트롤
-    *   깔끔하고 현대적인 디자인
-*   **Markdown 문법 지원 상세**:
-    *   헤딩 (H1-H6)
-    *   텍스트 스타일링 (굵게, 기울임, 취소선)
-    *   목록 (순서 있음/없음, 중첩)
-    *   링크 및 이미지
-    *   코드 블록 및 인라인 코드
-    *   표 (Table)
-    *   인용문 (Blockquote)
-    *   수평선
-    *   체크리스트
+* PDF/Markdown 뷰어, 문서 비교, 코드 하이라이팅, 자동 목차, Mermaid 다이어그램 등 README.md에 명시된 주요 기능이 정상 동작
+* Jest 기반 테스트 환경 구축 및 일부 테스트 코드 구현(app.test.js, pdf-viewer.test.js)
+* 커밋, 브랜치 병합, 푸시 등 Git 워크플로우 정상 작동
+* memory bank 파일과 README.md, package.json 등 주요 문서의 동기화 완료
 
 ## What's Left to Build
 
-(README.md에 명시된 기능 중, 현재 파일 구조나 `package.json`에서 명확히 확인되지 않거나, 추가 개발이 필요할 수 있는 부분. 또는 README에 언급되지 않았지만 일반적인 문서 뷰어에 필요한 기능)
-
-*   `js/markdown-viewer.js` 및 `js/diff-viewer.js` 등 README 기능에 부합하는 모듈화된 JS 파일의 실제 구현 및 `app.js`와의 통합 (현재 파일 목록에 해당 파일들이 없음)
-*   테스트 커버리지 확대: `app.test.js`와 `pdf-viewer.test.js` 외 다른 모듈(Markdown, Diff 등)에 대한 단위/통합 테스트 추가.
-*   `README.md`에 언급된 "로컬 웹 서버 (선택사항, 파일 업로드 기능을 위해 권장)" 외에, `npm start` 와 같은 개발 서버 실행 스크립트 추가 고려.
-*   `LICENSE` 파일 생성 (`README.md`에서 언급됨).
-*   커스터마이징 기능 강화 (예: UI 테마 선택 옵션, Mermaid 테마 UI 통해 변경 등).
-*   보다 상세한 오류 처리 및 사용자 피드백 메커니즘.
+* js/markdown-viewer.js, js/diff-viewer.js 등 README에 언급된 모듈화된 JS 파일의 실제 구현 및 app.js와의 통합(현재 js/ 폴더에 없음)
+* 테스트 커버리지 확대: app.test.js, pdf-viewer.test.js 외 다른 모듈(Markdown, Diff 등)에 대한 단위/통합 테스트 추가
+* README.md에 언급된 "로컬 웹 서버" 실행 스크립트(npm start 등) 추가 고려
+* LICENSE 파일 생성 및 명시
+* 커스터마이징 기능 강화(UI 테마, Mermaid 테마 등)
+* 더 상세한 오류 처리 및 사용자 피드백 메커니즘
 
 ## Current Status
 
-*   프로젝트의 기본 골격(`index.html`, `css/style.css`, `js/app.js`, `js/pdf-viewer.js`, `js/ui.js`)은 존재함.
-*   `package.json`을 통해 Jest 기반의 테스트 환경 설정됨.
-*   Babel 설정 (`.babelrc`) 존재.
-*   `README.md`에 프로젝트의 기능, 기술 스택, 사용법 등이 상세히 문서화되어 있음.
-*   메모리 뱅크 파일들이 `README.md` 및 프로젝트 현황에 맞게 업데이트되었으며, 재검토 완료됨.
-*   이전 변경 사항들(메모리 뱅크 초기화 및 1차 업데이트)은 커밋됨 (ID: `92bbdc5`).
+* 프로젝트의 기본 골격(index.html, css/style.css, js/app.js, js/pdf-viewer.js, js/ui.js) 존재
+* package.json을 통한 Jest 기반 테스트 환경 설정
+* Babel 설정(.babelrc) 존재
+* README.md에 프로젝트의 기능, 기술 스택, 사용법 등이 상세히 문서화됨
+* memory bank 파일들이 README.md 및 프로젝트 현황에 맞게 업데이트됨
+* 최근 memory bank 초기화 및 1차 업데이트는 커밋(ID: 92bbdc5)으로 관리됨
 
 ## Known Issues
 
-(README.md의 "알려진 제한사항" 섹션 내용을 기반으로 작성)
-
-*   매우 큰 PDF 파일 (50MB 이상)은 성능 이슈가 있을 수 있음.
-*   일부 복잡한 PDF 폼은 완전히 지원되지 않을 수 있음.
-*   인터넷 연결이 필요할 수 있음 (CDN 라이브러리 사용 시).
-*   `README.md`의 프로젝트 구조와 실제 파일 구조 간 약간의 불일치 존재 (예: `pdf_bbs` 디렉토리명, `sample.md` 위치 등).
-*   `README.md`에 언급된 일부 기능(Markdown 뷰어, 문서 비교)을 담당하는 것으로 추정되는 `js/markdown-viewer.js`, `js/diff-viewer.js` 파일이 현재 프로젝트 루트의 `js/` 폴더에 존재하지 않음. (`app.js` 내에 통합되었거나 다른 위치에 있을 가능성 또는 아직 미구현 상태일 수 있음).
+* 매우 큰 PDF 파일(50MB 이상)은 성능 이슈가 있을 수 있음
+* 일부 복잡한 PDF 폼은 완전히 지원되지 않을 수 있음
+* 인터넷 연결이 필요함(CDN 라이브러리 사용 시)
+* README.md의 프로젝트 구조와 실제 파일 구조 간 약간의 불일치 존재 가능성
+* README.md에 언급된 일부 기능(Markdown 뷰어, 문서 비교 등)을 담당하는 js/markdown-viewer.js, js/diff-viewer.js 파일이 현재 js/ 폴더에 없음(app.js 내부 통합 또는 미구현 상태)
 
 ## Evolution of Project Decisions
 
-*   **초기 단계**: 기본적인 PDF 및 Markdown 뷰어 기능 구현에 집중.
-*   **기능 확장**: 문서 비교, Mermaid 다이어그램, 자동 목차 등 고급 기능 추가.
-*   **사용자 경험 개선**: 드래그 앤 드롭, 반응형 디자인, 키보드 단축키 등 편의 기능 도입.
-*   **기술 스택 선택**: 경량성과 유연성을 위해 Vanilla JavaScript를 기본으로 하고, 전문 기능은 검증된 외부 라이브러리(PDF.js, Marked.js 등)를 활용하는 방향으로 결정.
-*   **테스트 도입**: Jest를 사용하여 코드 안정성 확보 노력.
-*   **문서화**: `README.md`를 통해 프로젝트 정보를 상세히 제공.
-*   **메모리 뱅크 도입 및 관리**: 프로젝트의 지속적인 관리와 이해를 돕기 위해 메모리 뱅크 시스템을 초기화하고, 주기적으로 업데이트 및 검토하는 프로세스 정립. (현재 재검토 완료 단계)
+* 초기 단계: 기본적인 PDF 및 Markdown 뷰어 기능 구현에 집중
+* 기능 확장: 문서 비교, Mermaid 다이어그램, 자동 목차 등 고급 기능 추가
+* 사용자 경험 개선: 드래그 앤 드롭, 반응형 디자인, 키보드 단축키 등 편의 기능 도입
+* 기술 스택 선택: 경량성과 유연성을 위해 Vanilla JavaScript 기반, 외부 라이브러리는 검증된 것만 사용
+* 테스트 도입: Jest를 활용한 코드 안정성 확보 노력
+* 문서화: README.md를 통해 프로젝트 정보를 상세히 제공
+* memory bank 도입 및 관리: 프로젝트의 지속적인 관리와 이해를 돕기 위해 memory bank 시스템을 초기화하고, 주기적으로 업데이트하는 프로세스 정립
