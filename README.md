@@ -49,15 +49,26 @@ PDF와 Markdown 파일을 지원하는 웹 기반 문서 뷰어입니다. Mermai
 ### 요구사항
 - 모던 웹 브라우저 (Chrome, Firefox, Safari, Edge)
 - 로컬 웹 서버 (선택사항, 파일 업로드 기능을 위해 권장)
+- node version 20.x (Iron) 
 
-### 로컬 실행
+### 설치 방법
+
 1. 저장소 클론
 ```bash
 git clone <repository-url>
 cd pdf_bbs
 ```
 
-2. 웹 서버 실행 (Python 예시)
+2. 의존성 설치 (선택사항, 현재는 외부 라이브러리 CDN 사용)
+```bash
+nvm install Iron
+nvm use Iron
+npm install
+```
+
+### 로컬 실행
+
+1. 웹 서버 실행 (Python 예시)
 ```bash
 # Python 3
 python -m http.server 8000
@@ -66,7 +77,7 @@ python -m http.server 8000
 python -m SimpleHTTPServer 8000
 ```
 
-3. 브라우저에서 접속
+2. 브라우저에서 접속
 ```
 http://localhost:8000
 ```

@@ -29,5 +29,9 @@
     "@babel/preset-env": "^7.27.2",
     "@babel/preset-react": "^7.27.1",
     "canvas": "^2.11.2"
-  }
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "engineStrict": true
 }
