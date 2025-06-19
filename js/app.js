@@ -76,11 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     setupEventListeners();
-    
-    // 테스트용: 자동으로 테스트 PDF 로드
-    setTimeout(() => {
-        handlePDFFile('tests/docs/test-new.pdf');
-    }, 1000);
 });
 
 // 이벤트 리스너 설정
