@@ -140,6 +140,26 @@ function setupEventListeners() {
     
     // 줌 컨트롤 이벤트 리스너 설정
     setupZoomControls();
+    
+    // 원격 파일 로드 이벤트
+    const remoteFileUrlInput = document.getElementById('remoteFileUrl');
+    const loadRemoteFileBtn = document.getElementById('loadRemoteFileBtn');
+    if (loadRemoteFileBtn && remoteFileUrlInput) {
+        loadRemoteFileBtn.addEventListener('click', () => {
+            const url = remoteFileUrlInput.value.trim();
+            if (!url) {
+                showError('URL을 입력하세요.');
+                return;
+            }
+            fetchFileByUrl(url);
+        });
+        // 엔터키 지원
+        remoteFileUrlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadRemoteFileBtn.click();
+            }
+        });
+    }
 }
 
 // 줌 컨트롤 이벤트 리스너 설정
@@ -678,3 +698,49 @@ window.hideError = hideError;
 window.switchMode = switchMode;
 window.compareDocuments = compareDocuments;
 window.currentFileName = currentFileName;
+
+// 원격 파일 로드 함수
+export async function fetchFileByUrl(url, handlers = {}) {
+    const {
+        handlePDFFile: _handlePDFFile = handlePDFFile,
+        loadMarkdown: _loadMarkdown = loadMarkdown,
+        showError: _showError = showError,
+        showLoading: _showLoading = showLoading,
+        hideLoading: _hideLoading = hideLoading,
+        setCurrentFileName: _setCurrentFileName = (name) => { currentFileName = name; }
+    } = handlers;
+    _hideLoading();
+    _showLoading();
+    try {
+        const urlObj = new URL(url);
+        const fileNameFromUrl = urlObj.pathname.split('/').pop() || 'remote-file';
+        const ext = fileNameFromUrl.split('.').pop().toLowerCase();
+        let fileType = null;
+        if (ext === 'pdf') fileType = 'pdf';
+        else if (ext === 'md' || ext === 'markdown') fileType = 'markdown';
+        else throw new Error('지원하지 않는 파일 형식입니다. PDF 또는 Markdown 파일만 가능합니다.');
+
+        if (fileType === 'pdf') {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`파일을 불러올 수 없습니다. (HTTP ${response.status})`);
+            const arrayBuffer = await response.arrayBuffer();
+            _setCurrentFileName(fileNameFromUrl);
+            await _handlePDFFile(new Uint8Array(arrayBuffer));
+        } else if (fileType === 'markdown') {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`파일을 불러올 수 없습니다. (HTTP ${response.status})`);
+            const text = await response.text();
+            _setCurrentFileName(fileNameFromUrl);
+            await _loadMarkdown(text, fileNameFromUrl);
+        }
+    } catch (err) {
+        _hideLoading();
+        if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+            _showError('CORS 정책 또는 네트워크 문제로 파일을 불러올 수 없습니다.');
+        } else {
+            _showError('원격 파일을 로드할 수 없습니다: ' + err.message);
+        }
+    } finally {
+        _hideLoading();
+    }
+}
