@@ -94,6 +94,7 @@ doc_viewer/
 ### 1. 파일 업로드
 - **드래그 앤 드롭**: 파일을 업로드 영역에 끌어다 놓기
 - **파일 선택**: "파일 선택" 버튼 클릭하여 파일 브라우저 열기
+- **URL로 파일 로드**: "URL로 파일 불러오기" 입력란에 URL 입력 후 "로드" 버튼 클릭
 
 ### 2. 지원 파일 형식
 - **PDF**: `.pdf`
@@ -191,6 +192,7 @@ mermaid.initialize({
 - 매우 큰 PDF 파일 (50MB 이상)은 성능 이슈가 있을 수 있습니다
 - 일부 복잡한 PDF 폼은 완전히 지원되지 않을 수 있습니다
 - 인터넷 연결이 필요합니다 (CDN 라이브러리 사용)
+- CORS 정책으로 인해 fetch로 원격 파일을 불러올 때 제한이 있을 수 있습니다
 
 ## 🤝 기여하기
 
@@ -211,11 +213,3 @@ mermaid.initialize({
 - [Mermaid.js](https://mermaid.js.org/) - Knut Sveidqvist
 - [Prism.js](https://prismjs.com/) - Lea Verou
 - [jsdiff](https://github.com/kpdecker/jsdiff) - Kevin Decker
-
-## 📞 연락처
-
-프로젝트 링크: [https://github.com/username/pdf_bbs](https://github.com/username/pdf_bbs)
-
----
-
-⭐ 이 프로젝트가 유용하다면 스타를 눌러주세요!
