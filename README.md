@@ -90,14 +90,32 @@ http://localhost:8000
 ```
 doc_viewer/
 ├── index.html         # 메인 웹 페이지 진입점
-├── css/               # 스타일시트(CSS) 디렉토리
-├── js/                # 자바스크립트(JS) 소스 디렉토리
-├── memory-bank/       # 프로젝트 맥락 및 참고 문서 디렉토리
-├── tests/             # 테스트 코드 및 테스트 데이터 디렉토리
-├── .babelrc           # Babel 트랜스파일러 설정 파일
-├── .gitignore         # Git에서 제외할 파일/폴더 목록
-├── package.json       # 프로젝트 메타정보 및 의존성 관리 파일
-├── README.md          # 프로젝트 설명서
+├── css/
+│   └── style.css      # 메인 스타일시트
+├── js/
+│   ├── app.js         # 메인 애플리케이션 컨트롤러
+│   ├── pdf-viewer.js  # PDF 뷰어 모듈
+│   └── ui.js          # UI 상태 관리 모듈
+├── memory-bank/       # 프로젝트 맥락 및 문서화
+│   ├── activeContext.md    # 현재 개발 컨텍스트
+│   ├── productContext.md   # 제품 요구사항 및 기능 명세
+│   ├── progress.md         # 진행 상황 추적
+│   ├── projectbrief.md     # 프로젝트 개요
+│   ├── systemPatterns.md   # 아키텍처 패턴 및 기술 결정
+│   └── techContext.md      # 기술적 구현 세부사항
+├── tests/             # 테스트 코드 및 테스트 데이터
+│   ├── app.test.js         # 메인 앱 테스트
+│   ├── pdf-viewer.test.js  # PDF 뷰어 테스트
+│   ├── setupTests.js       # 테스트 설정
+│   └── docs/               # 테스트용 샘플 파일
+├── specs/             # 설계 명세 및 요구사항 문서
+│   ├── design-f-remote-file.md  # 원격 파일 기능 설계
+│   └── requirements.md          # 프로젝트 요구사항
+├── coverage/          # 테스트 커버리지 리포트 (자동 생성)
+├── CLAUDE.md          # Claude Code 작업 지침
+├── package.json       # 프로젝트 메타정보 및 의존성 관리
+├── package-lock.json  # 의존성 잠금 파일
+└── README.md          # 프로젝트 설명서
 ```
 
 ## 📖 사용 방법
