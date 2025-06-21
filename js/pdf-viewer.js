@@ -105,12 +105,65 @@ export async function renderPage(pageNum) {
         uiCallbacks.showLoading();
         
         const page = await pdfDoc.getPage(pageNum);
+        
+        // DOM 요소들을 먼저 가져오기
         const viewerContainer = safeGetElement('viewerContainer');
         const viewer = safeGetElement('viewer');
+        const pdfContainer = safeGetElement('pdfContainer');
         
         if (!viewer) {
             throw new Error('Viewer element not found');
         }
+        
+        // PDF 컨테이너가 보이도록 설정 (CSS display 확인)
+        if (pdfContainer && pdfContainer.style.display === 'none') {
+            pdfContainer.style.display = 'block';
+        }
+        
+        // 컨테이너 크기 강제 설정 (CSS 문제 해결용)
+        if (viewerContainer) {
+            viewerContainer.style.width = '100%';
+            viewerContainer.style.height = '100vh';
+            viewerContainer.style.minHeight = '600px';
+            viewerContainer.style.display = 'block';
+            viewerContainer.style.position = 'relative';
+        }
+        
+        if (pdfContainer) {
+            pdfContainer.style.width = '100%';
+            pdfContainer.style.height = 'auto';
+            pdfContainer.style.minHeight = '600px';
+            pdfContainer.style.display = 'flex';
+            pdfContainer.style.justifyContent = 'center';
+            pdfContainer.style.alignItems = 'flex-start';
+            pdfContainer.style.padding = '20px';
+        }
+        
+        // 뷰어 컨테이너 크기 정보 로깅 (렌더링 전)
+        console.log('=== CONTAINER SIZES BEFORE RENDERING ===');
+        console.log('ViewerContainer:', {
+            offsetWidth: viewerContainer ? viewerContainer.offsetWidth : 'N/A',
+            offsetHeight: viewerContainer ? viewerContainer.offsetHeight : 'N/A',
+            clientWidth: viewerContainer ? viewerContainer.clientWidth : 'N/A',
+            clientHeight: viewerContainer ? viewerContainer.clientHeight : 'N/A',
+            style: viewerContainer ? {
+                width: viewerContainer.style.width,
+                height: viewerContainer.style.height,
+                display: viewerContainer.style.display
+            } : 'N/A'
+        });
+        console.log('PDFContainer:', {
+            offsetWidth: pdfContainer ? pdfContainer.offsetWidth : 'N/A',
+            offsetHeight: pdfContainer ? pdfContainer.offsetHeight : 'N/A',
+            clientWidth: pdfContainer ? pdfContainer.clientWidth : 'N/A',
+            clientHeight: pdfContainer ? pdfContainer.clientHeight : 'N/A',
+            style: pdfContainer ? {
+                width: pdfContainer.style.width,
+                height: pdfContainer.style.height,
+                display: pdfContainer.style.display
+            } : 'N/A'
+        });
+        console.log('=== END CONTAINER SIZES BEFORE RENDERING ===');
         
         // 기존 내용 제거
         viewer.innerHTML = '';
@@ -139,16 +192,29 @@ export async function renderPage(pageNum) {
         // currentScale 값 동기화
         currentScale = scaleToUse;
         
-        // 디버깅 로그
-        console.log(`페이지 ${pageNum} 렌더링:`, {
-            currentZoom,
-            currentScale,
-            scaleToUse,
-            viewportWidth: viewport.width,
-            viewportHeight: viewport.height,
-            containerWidth: viewerContainer ? viewerContainer.clientWidth : 'N/A',
-            containerHeight: viewerContainer ? viewerContainer.clientHeight : 'N/A'
+        // === 페이지 렌더링 디버깅 정보 ===
+        console.log('=== PAGE RENDER DEBUG INFO ===');
+        console.log('Current page:', pageNum);
+        console.log('Current zoom setting:', currentZoom);
+        console.log('Current scale:', currentScale);
+        console.log('Scale to use:', scaleToUse);
+        console.log('Viewport dimensions:', {
+            width: viewport.width,
+            height: viewport.height
         });
+        console.log('Container dimensions:', {
+            width: viewerContainer ? viewerContainer.clientWidth : 'N/A',
+            height: viewerContainer ? viewerContainer.clientHeight : 'N/A',
+            pdfContainerWidth: pdfContainer ? pdfContainer.clientWidth : 'N/A',
+            pdfContainerHeight: pdfContainer ? pdfContainer.clientHeight : 'N/A'
+        });
+        console.log('Scale calculation method:', 
+            currentZoom === 'auto' ? 'Auto (optimal)' :
+            currentZoom === 'page-width' ? 'Page width' :
+            currentZoom === 'page-fit' ? 'Page fit' :
+            'Fixed scale: ' + currentZoom
+        );
+        console.log('=== END PAGE RENDER DEBUG ===');
         
         const scaledViewport = page.getViewport({ scale: scaleToUse });
         
@@ -202,6 +268,9 @@ export async function renderPage(pageNum) {
         };
         
         await page.render(renderContext).promise;
+        
+        // DOM 레이아웃이 완전히 완료되도록 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         // 텍스트 레이어 렌더링 (scaledViewport 사용하여 좌표계 일치)
         await renderTextLayer(page, scaledViewport, textLayerDiv);
@@ -303,10 +372,136 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
         // 스케일 비율 계산
         const scaleRatio = viewport.scale / originalViewport.scale;
         
-        textContent.items.forEach(function(textItem) {
+        // 컨테이너 요소들을 안전하게 가져오기
+        const viewerContainer = document.getElementById('viewerContainer');
+        const pdfContainer = document.getElementById('pdfContainer');
+        const viewer = document.getElementById('viewer');
+        
+        // DOM 레이아웃이 완료될 때까지 대기
+        await new Promise(resolve => {
+            if (textLayerDiv.offsetWidth > 0 && textLayerDiv.offsetHeight > 0) {
+                resolve();
+            } else {
+                // 레이아웃이 완료되지 않은 경우 requestAnimationFrame으로 대기
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => resolve());
+                });
+            }
+        });
+        
+        // === 디버깅 정보 출력 ===
+        console.log('=== TEXT LAYER DEBUG INFO ===');
+        console.log('Viewport scale:', viewport.scale);
+        console.log('Original viewport scale:', originalViewport.scale);
+        console.log('Scale ratio:', scaleRatio);
+        console.log('Viewport dimensions:', {
+            width: viewport.width,
+            height: viewport.height
+        });
+        console.log('Original viewport dimensions:', {
+            width: originalViewport.width,
+            height: originalViewport.height
+        });
+        
+        // 컨테이너 크기 정보 수집
+        const containerInfo = {
+            textLayerDiv: {
+                width: textLayerDiv.offsetWidth,
+                height: textLayerDiv.offsetHeight,
+                clientWidth: textLayerDiv.clientWidth,
+                clientHeight: textLayerDiv.clientHeight,
+                style: {
+                    width: textLayerDiv.style.width,
+                    height: textLayerDiv.style.height,
+                    position: textLayerDiv.style.position,
+                    left: textLayerDiv.style.left,
+                    top: textLayerDiv.style.top
+                }
+            },
+            parentElement: textLayerDiv.parentElement ? {
+                width: textLayerDiv.parentElement.offsetWidth,
+                height: textLayerDiv.parentElement.offsetHeight,
+                clientWidth: textLayerDiv.parentElement.clientWidth,
+                clientHeight: textLayerDiv.parentElement.clientHeight,
+                tagName: textLayerDiv.parentElement.tagName,
+                className: textLayerDiv.parentElement.className
+            } : null,
+            viewerContainer: viewerContainer ? {
+                width: viewerContainer.offsetWidth,
+                height: viewerContainer.offsetHeight,
+                clientWidth: viewerContainer.clientWidth,
+                clientHeight: viewerContainer.clientHeight
+            } : null,
+            pdfContainer: pdfContainer ? {
+                width: pdfContainer.offsetWidth,
+                height: pdfContainer.offsetHeight,
+                clientWidth: pdfContainer.clientWidth,
+                clientHeight: pdfContainer.clientHeight
+            } : null,
+            viewer: viewer ? {
+                width: viewer.offsetWidth,
+                height: viewer.offsetHeight,
+                clientWidth: viewer.clientWidth,
+                clientHeight: viewer.clientHeight
+            } : null
+        };
+        
+        console.log('Container information:', containerInfo);
+        
+        // 컨테이너 크기 정보를 개별적으로 로깅
+        console.log('=== DETAILED CONTAINER SIZES ===');
+        console.log('TextLayerDiv size:', {
+            offsetWidth: containerInfo.textLayerDiv.width,
+            offsetHeight: containerInfo.textLayerDiv.height,
+            clientWidth: containerInfo.textLayerDiv.clientWidth,
+            clientHeight: containerInfo.textLayerDiv.clientHeight,
+            styleWidth: containerInfo.textLayerDiv.style.width,
+            styleHeight: containerInfo.textLayerDiv.style.height
+        });
+        
+        if (containerInfo.parentElement) {
+            console.log('ParentElement (pageDiv) size:', {
+                offsetWidth: containerInfo.parentElement.width,
+                offsetHeight: containerInfo.parentElement.height,
+                clientWidth: containerInfo.parentElement.clientWidth,
+                clientHeight: containerInfo.parentElement.clientHeight,
+                tagName: containerInfo.parentElement.tagName,
+                className: containerInfo.parentElement.className
+            });
+        }
+        
+        if (containerInfo.viewerContainer) {
+            console.log('ViewerContainer size:', {
+                offsetWidth: containerInfo.viewerContainer.width,
+                offsetHeight: containerInfo.viewerContainer.height,
+                clientWidth: containerInfo.viewerContainer.clientWidth,
+                clientHeight: containerInfo.viewerContainer.clientHeight
+            });
+        }
+        
+        if (containerInfo.viewer) {
+            console.log('Viewer size:', {
+                offsetWidth: containerInfo.viewer.width,
+                offsetHeight: containerInfo.viewer.height,
+                clientWidth: containerInfo.viewer.clientWidth,
+                clientHeight: containerInfo.viewer.clientHeight
+            });
+        }
+        console.log('=== END DETAILED CONTAINER SIZES ===');
+        
+        console.log('Text items count:', textContent.items.length);
+        
+        textContent.items.forEach(function(textItem, index) {
             if (!textItem.str || textItem.str.trim() === '') {
                 return;
             }
+            
+            // === 텍스트 아이템별 디버깅 정보 ===
+            console.log(`=== TEXT ITEM ${index} DEBUG ===`);
+            console.log('Text content:', textItem.str);
+            console.log('Text item width:', textItem.width);
+            console.log('Text item height:', textItem.height);
+            console.log('Text item transform:', textItem.transform);
             
             // 원본 viewport 기준으로 변환
             const tx = pdfjsLib.Util.transform(
@@ -316,6 +511,54 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
             
             const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
             
+            // === Transform matrix 분석 ===
+            console.log('Transform matrix:', tx);
+            console.log('Matrix breakdown:', {
+                scaleX: tx[0],
+                skewY: tx[1], 
+                skewX: tx[2],
+                scaleY: tx[3],
+                translateX: tx[4],
+                translateY: tx[5]
+            });
+            console.log('Font calculations:', {
+                fontHeight: fontHeight,
+                calculatedFontSize: fontHeight
+            });
+            
+            // 최종 계산된 위치
+            const calculatedPosition = {
+                left: tx[4],
+                top: tx[5] - fontHeight,
+                fontSize: fontHeight
+            };
+            console.log('Calculated position (before scale):', calculatedPosition);
+            
+            // 텍스트 너비 계산 - 두 가지 방법으로 시도
+            const textWidth = textItem.width;
+            const scaledTextWidth = textWidth * (fontHeight / textItem.height); // 방법 1: 폰트 크기에 비례하여 조정
+            
+            // 방법 2: Transform matrix를 사용한 너비 계산
+            const matrixScaledWidth = textWidth * Math.abs(tx[0] / textItem.transform[0]);
+            
+            // 방법 3: 직접적인 스케일 계산
+            const directScaledWidth = textWidth * Math.abs(tx[0]) / textItem.transform[0];
+            
+            console.log('Text width calculations:', {
+                originalTextItemWidth: textItem.width,
+                textItemHeight: textItem.height,
+                fontHeight: fontHeight,
+                method1_scaledTextWidth: scaledTextWidth,
+                method2_matrixScaledWidth: matrixScaledWidth,
+                method3_directScaledWidth: directScaledWidth,
+                widthScaleFactor: fontHeight / textItem.height,
+                transformScaleX: tx[0],
+                originalTransformScaleX: textItem.transform[0]
+            });
+            
+            // 가장 적절한 너비 선택 (transform matrix 기반 우선)
+            const finalWidth = Math.max(matrixScaledWidth, scaledTextWidth, directScaledWidth);
+            
             // 텍스트 요소 생성
             const span = document.createElement('span');
             span.textContent = textItem.str;
@@ -323,6 +566,7 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
             span.style.left = tx[4] + 'px';
             span.style.top = (tx[5] - fontHeight) + 'px';
             span.style.fontSize = fontHeight + 'px';
+            span.style.width = finalWidth + 'px'; // 계산된 너비 사용
             span.style.fontFamily = 'sans-serif';
             span.style.color = 'transparent';
             span.style.userSelect = 'text';
@@ -330,6 +574,20 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
             span.style.whiteSpace = 'pre';
             span.style.pointerEvents = 'auto';
             span.style.transformOrigin = '0% 0%';
+            span.style.overflow = 'visible'; // 텍스트가 잘리지 않도록
+            span.style.boxSizing = 'border-box';
+            
+            // === 적용된 스타일 디버깅 ===
+            console.log('Applied styles to DOM:', {
+                left: span.style.left,
+                top: span.style.top,
+                fontSize: span.style.fontSize,
+                width: span.style.width,
+                finalWidthUsed: finalWidth,
+                transform: span.style.transform,
+                textContent: span.textContent
+            });
+            console.log('--- END TEXT ITEM DEBUG ---');
             
             textLayerDiv.appendChild(span);
         });
@@ -338,7 +596,50 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
         textLayerDiv.style.transform = `scale(${scaleRatio})`;
         textLayerDiv.style.transformOrigin = '0 0';
         
+        // === 최종 레이어 디버깅 정보 ===
+        console.log('Final text layer transform:', textLayerDiv.style.transform);
+        console.log('Final text layer transform origin:', textLayerDiv.style.transformOrigin);
+        console.log('Scale ratio applied to text layer:', scaleRatio);
+        console.log('Text element count before scaling:', textLayerDiv.children.length);
+        
+        // 스케일 적용 후 각 텍스트 요소의 실제 위치와 크기 검증
+        console.log('=== POST-SCALE VERIFICATION ===');
+        Array.from(textLayerDiv.children).forEach((span, index) => {
+            if (index < 3) { // 처음 3개 요소만 로깅
+                const rect = span.getBoundingClientRect();
+                const layerRect = textLayerDiv.getBoundingClientRect();
+                console.log(`Text element ${index} after scaling:`, {
+                    textContent: span.textContent,
+                    styleWidth: span.style.width,
+                    styleLeft: span.style.left,
+                    styleTop: span.style.top,
+                    boundingRect: {
+                        width: rect.width,
+                        height: rect.height,
+                        left: rect.left - layerRect.left, // 레이어 기준 상대 위치
+                        top: rect.top - layerRect.top
+                    },
+                    actualBoundingRect: {
+                        absoluteLeft: rect.left,
+                        absoluteTop: rect.top,
+                        absoluteRight: rect.right,
+                        absoluteBottom: rect.bottom,
+                        width: rect.width,
+                        height: rect.height
+                    },
+                    layerBoundingRect: {
+                        left: layerRect.left,
+                        top: layerRect.top,
+                        width: layerRect.width,
+                        height: layerRect.height
+                    }
+                });
+            }
+        });
+        console.log('=== END POST-SCALE VERIFICATION ===');
+        
         console.log('CSS Transform 텍스트 레이어 생성 완료. 스케일:', scaleRatio, '텍스트 요소 수:', textLayerDiv.children.length);
+        console.log('=== END TEXT LAYER DEBUG ===');
         
     } catch (error) {
         console.error('텍스트 레이어 렌더링 오류:', error);

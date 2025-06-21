@@ -3,18 +3,18 @@
 ## PDF 텍스트 선택 위치 불일치 문제
 
 ### 문제 설명
-PDF 뷰어에서 텍스트를 선택할 때, 마우스로 드래그한 선택 영역이 실제 텍스트 위치와 일치하지 않는 문제가 발생합니다. 특히 줌 레벨을 변경했을 때 이 문제가 더욱 심화됩니다.
+PDF 뷰어에서 텍스트를 선택할 때, 마우스로 드래그한 선택 영역이 실제 텍스트 위치와 일치하지 않는 문제가 발생합니다. 현재 주요 증상은 **선택 영역의 오른쪽이 텍스트 끝까지 도달하지 않는 문제**입니다.
 
 ### 재현 방법
 1. PDF 파일을 업로드
-2. 줌 레벨을 변경 (예: 150%, 200%)
-3. PDF 내의 텍스트를 마우스로 드래그하여 선택 시도
-4. 선택 영역이 실제 텍스트 위치와 다른 곳에 나타남
+2. 텍스트를 마우스로 왼쪽에서 오른쪽으로 드래그하여 선택 시도
+3. 선택 영역이 텍스트의 실제 끝 부분까지 도달하지 않음
+4. 특히 긴 텍스트일수록 문제가 더 명확하게 드러남
 
 ### 영향도
-- **심각도**: High
-- **사용자 경험**: 텍스트 복사 기능 사용 불가
-- **발생 빈도**: 줌 레벨 변경 시 항상 발생
+- **심각도**: Critical
+- **사용자 경험**: 텍스트 복사 기능 사용 불편
+- **발생 빈도**: 모든 텍스트 선택 시도에서 발생
 
 ### 기술적 원인
 
@@ -22,12 +22,49 @@ PDF 뷰어에서 텍스트를 선택할 때, 마우스로 드래그한 선택 �
 - `js/pdf-viewer.js:248-301` - `renderTextLayer` 함수 (CSS Transform 방식)
 - `js/pdf-viewer.js:140-167` - 페이지 렌더링 로직
 
-#### 시도된 해결 방식들과 실패 원인
+#### 최근 분석 결과 (2025-01-21)
 
-1. **수동 스케일 곱셈 방식** (실패):
-   ```javascript
-   // 스케일 팩터를 개별 요소에 직접 적용
-   span.style.left = (tx[4] * scale) + 'px';
+**1. 컨테이너 크기 0 문제 확인**
+- 모든 컨테이너(viewerContainer, pdfContainer, textLayerDiv, parentElement)의 크기가 0으로 측정됨
+- DOM 레이아웃 미완료 또는 CSS 스타일 미적용이 원인으로 추정
+
+**2. 텍스트 요소 너비 부정확성**
+- 기존: 텍스트 요소의 너비가 자동으로 결정되어 실제 텍스트보다 짧게 렌더링
+- 개선: PDF.js의 `textItem.width`를 활용한 명시적 너비 설정
+
+#### 시도된 해결 방식들
+
+**1. 텍스트 요소 명시적 너비 설정** (진행 중):
+```javascript
+// 3가지 방법으로 너비 계산
+const scaledTextWidth = textWidth * (fontHeight / textItem.height);
+const matrixScaledWidth = textWidth * Math.abs(tx[0] / textItem.transform[0]);
+const directScaledWidth = textWidth * Math.abs(tx[0]) / textItem.transform[0];
+const finalWidth = Math.max(matrixScaledWidth, scaledTextWidth, directScaledWidth);
+span.style.width = finalWidth + 'px';
+```
+
+**2. 컨테이너 크기 강제 설정**:
+```javascript
+viewerContainer.style.width = '100%';
+viewerContainer.style.height = '100vh';
+pdfContainer.style.width = '100%';
+pdfContainer.style.display = 'flex';
+```
+
+**3. DOM 레이아웃 완료 대기**:
+```javascript
+await new Promise(resolve => setTimeout(resolve, 50));
+await new Promise(resolve => {
+  if (textLayerDiv.offsetWidth > 0) resolve();
+  else requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+});
+```
+
+**4. 상세 디버깅 시스템 구축**:
+- POST-SCALE VERIFICATION: 스케일 적용 후 실제 boundingRect 검증
+- 3가지 너비 계산 방법의 결과값 비교 로깅
+- 컨테이너 크기 측정 결과 상세 추적
    span.style.top = ((tx[5] - fontHeight) * scale) + 'px';
    span.style.fontSize = (fontHeight * scale) + 'px';
    ```
