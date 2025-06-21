@@ -13,9 +13,9 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 15px;
     min-height: 100vh;
 }
 
@@ -513,10 +513,10 @@ body {
 /* PDF 컨테이너 */
 .pdf-container {
     position: relative;
-    padding: 20px;
+    padding: 10px;
     text-align: center;
     background-color: #ecf0f1;
-    min-height: 600px;
+    min-height: calc(100vh - 200px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -542,8 +542,9 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
     box-sizing: border-box;
+    min-height: calc(100vh - 200px);
 }
 
 #viewer {

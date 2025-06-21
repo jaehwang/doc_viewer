@@ -45,6 +45,18 @@ function safeGetElement(id) {
 export function initializePDFViewer() {
     // PDF.js 뷰어 구성 요소 초기화
     console.log('PDF.js 뷰어 초기화');
+    
+    // 브라우저 창 크기 변경 시 자동 리사이즈 (auto, page-width, page-fit 모드만)
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        // 디바운싱으로 성능 최적화
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            if (pdfDoc && (currentZoom === 'auto' || currentZoom === 'page-width' || currentZoom === 'page-fit')) {
+                renderPage(currentPage);
+            }
+        }, 250);
+    });
 }
 
 // PDF 로드
@@ -58,21 +70,28 @@ export async function loadPDF(data) {
         totalPages = pdfDoc.numPages;
         currentPage = 1;
         
+        // 100%를 기본값으로 설정
+        currentZoom = '1.0';
+        currentScale = 1.0;
+        
         // UI 업데이트
         const totalPagesSpan = safeGetElement('totalPages');
         const pageInput = safeGetElement('pageInput');
+        const zoomSelect = safeGetElement('zoomSelect');
         
         if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
         if (pageInput) {
             pageInput.value = currentPage;
             pageInput.max = totalPages;
         }
+        if (zoomSelect) zoomSelect.value = '1.0';
         
         // 첫 번째 페이지 렌더링
         await renderPage(currentPage);
         
         // 네비게이션 버튼 상태 초기화
         updateNavigationButtons();
+        updateZoomButtons();
         
     } catch (error) {
         console.error('PDF 로드 오류:', error);
@@ -103,12 +122,33 @@ export async function renderPage(pageNum) {
         if (currentZoom === 'auto') {
             scaleToUse = calculateOptimalScale(viewport, viewerContainer);
         } else if (currentZoom === 'page-width') {
-            scaleToUse = viewerContainer ? (viewerContainer.clientWidth - 80) / viewport.width : 1.0;
+            const containerWidth = viewerContainer ? viewerContainer.clientWidth : window.innerWidth * 0.95;
+            scaleToUse = Math.max(1.0, (containerWidth - 40) / viewport.width); // 최소 100% 보장
         } else if (currentZoom === 'page-fit') {
             scaleToUse = calculateOptimalScale(viewport, viewerContainer); // 'auto'와 동일하게 처리
         } else {
-            scaleToUse = currentScale; // 고정 스케일 사용
+            // 고정 스케일 사용 - 컨테이너 크기와 무관하게 고정값 사용
+            const parsedZoom = parseFloat(currentZoom);
+            if (!isNaN(parsedZoom)) {
+                scaleToUse = parsedZoom; // 컨테이너 크기 변화와 무관하게 고정
+            } else {
+                scaleToUse = 1.0; // 기본값
+            }
         }
+        
+        // currentScale 값 동기화
+        currentScale = scaleToUse;
+        
+        // 디버깅 로그
+        console.log(`페이지 ${pageNum} 렌더링:`, {
+            currentZoom,
+            currentScale,
+            scaleToUse,
+            viewportWidth: viewport.width,
+            viewportHeight: viewport.height,
+            containerWidth: viewerContainer ? viewerContainer.clientWidth : 'N/A',
+            containerHeight: viewerContainer ? viewerContainer.clientHeight : 'N/A'
+        });
         
         const scaledViewport = page.getViewport({ scale: scaleToUse });
         
@@ -163,8 +203,8 @@ export async function renderPage(pageNum) {
         
         await page.render(renderContext).promise;
         
-        // 텍스트 레이어 렌더링
-        await renderTextLayer(page, viewport, textLayerDiv);
+        // 텍스트 레이어 렌더링 (scaledViewport 사용하여 좌표계 일치)
+        await renderTextLayer(page, scaledViewport, textLayerDiv);
         
         uiCallbacks.hideLoading();
         
@@ -206,20 +246,20 @@ export function adjustViewerContainer(viewport, isLandscape) {
 // 최적 스케일 계산
 export function calculateOptimalScale(viewport, container) {
     // 컨테이너 크기 확인 및 fallback
-    let containerWidth = container.clientWidth || 800; // fallback 크기
-    let containerHeight = container.clientHeight || 600; // fallback 크기
+    let containerWidth = container ? container.clientWidth : 0;
+    let containerHeight = container ? container.clientHeight : 0;
     
-    // 컨테이너가 숨겨져 있거나 크기가 0인 경우 기본값 사용
+    // 컨테이너가 없거나 크기가 0인 경우 뷰포트 크기 사용
     if (containerWidth <= 0) {
-        containerWidth = Math.min(window.innerWidth * 0.8, 800);
+        containerWidth = window.innerWidth * 0.95; // 브라우저 창의 95% 사용 (증가)
     }
     if (containerHeight <= 0) {
-        containerHeight = Math.min(window.innerHeight * 0.7, 600);
+        containerHeight = window.innerHeight * 0.85; // 브라우저 창의 85% 사용 (증가)
     }
     
-    // 패딩 고려
-    const availableWidth = containerWidth - 80;
-    const availableHeight = containerHeight - 80;
+    // 패딩 및 여백 고려 (더 적은 패딩으로 더 큰 크기 확보)
+    const availableWidth = containerWidth - 20; // 패딩 줄임
+    const availableHeight = containerHeight - 40; // 패딩 줄임
     
     // 가로/세로 스케일 계산
     const scaleX = availableWidth / viewport.width;
@@ -228,8 +268,13 @@ export function calculateOptimalScale(viewport, container) {
     // 더 작은 스케일을 선택하여 전체 페이지가 보이도록 함
     let optimalScale = Math.min(scaleX, scaleY);
     
-    // 스케일 범위 제한 (최소 0.5, 최대 2.0)
-    optimalScale = Math.max(0.5, Math.min(optimalScale, 2.0));
+    // 100%보다 작게 나오는 경우 최소 1.0으로 보장
+    if (optimalScale < 1.0) {
+        optimalScale = Math.max(1.0, optimalScale * 1.2); // 20% 증가 또는 최소 100%
+    }
+    
+    // 스케일 범위 제한 (최소 1.0, 최대 3.0)
+    optimalScale = Math.max(1.0, Math.min(optimalScale, 3.0));
     
     // 디버그 로그
     console.log('스케일 계산:', {
@@ -245,8 +290,63 @@ export function calculateOptimalScale(viewport, container) {
     return optimalScale;
 }
 
-// 텍스트 레이어 렌더링
+// 텍스트 레이어 렌더링 (CSS Transform 방식)
 export async function renderTextLayer(page, viewport, textLayerDiv) {
+    try {
+        // 기존 내용 제거
+        textLayerDiv.innerHTML = '';
+        
+        // 원본 viewport (스케일 1.0)로 텍스트 내용 가져오기
+        const originalViewport = page.getViewport({ scale: 1.0 });
+        const textContent = await page.getTextContent();
+        
+        // 스케일 비율 계산
+        const scaleRatio = viewport.scale / originalViewport.scale;
+        
+        textContent.items.forEach(function(textItem) {
+            if (!textItem.str || textItem.str.trim() === '') {
+                return;
+            }
+            
+            // 원본 viewport 기준으로 변환
+            const tx = pdfjsLib.Util.transform(
+                pdfjsLib.Util.transform(originalViewport.transform, textItem.transform),
+                [1, 0, 0, -1, 0, 0]
+            );
+            
+            const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
+            
+            // 텍스트 요소 생성
+            const span = document.createElement('span');
+            span.textContent = textItem.str;
+            span.style.position = 'absolute';
+            span.style.left = tx[4] + 'px';
+            span.style.top = (tx[5] - fontHeight) + 'px';
+            span.style.fontSize = fontHeight + 'px';
+            span.style.fontFamily = 'sans-serif';
+            span.style.color = 'transparent';
+            span.style.userSelect = 'text';
+            span.style.cursor = 'text';
+            span.style.whiteSpace = 'pre';
+            span.style.pointerEvents = 'auto';
+            span.style.transformOrigin = '0% 0%';
+            
+            textLayerDiv.appendChild(span);
+        });
+        
+        // 텍스트 레이어 전체에 CSS transform 적용
+        textLayerDiv.style.transform = `scale(${scaleRatio})`;
+        textLayerDiv.style.transformOrigin = '0 0';
+        
+        console.log('CSS Transform 텍스트 레이어 생성 완료. 스케일:', scaleRatio, '텍스트 요소 수:', textLayerDiv.children.length);
+        
+    } catch (error) {
+        console.error('텍스트 레이어 렌더링 오류:', error);
+    }
+}
+
+// 수동 텍스트 레이어 구현 (폴백용)
+async function renderTextLayerManual(page, viewport, textLayerDiv) {
     try {
         const textContent = await page.getTextContent();
         
@@ -281,10 +381,10 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
             textLayerDiv.appendChild(span);
         });
         
-        console.log('텍스트 레이어 생성 완료. 텍스트 요소 수:', textLayerDiv.children.length);
+        console.log('수동 텍스트 레이어 생성 완료. 텍스트 요소 수:', textLayerDiv.children.length);
         
     } catch (error) {
-        console.error('텍스트 레이어 렌더링 오류:', error);
+        console.error('수동 텍스트 레이어 렌더링 오류:', error);
     }
 }
 
