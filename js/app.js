@@ -649,30 +649,30 @@ function handleKeyboard(e) {
     }
     
     switch(e.key) {
-        case 'ArrowLeft':
-            e.preventDefault();
-            pdfViewer.showPrevPage();
-            break;
-        case 'ArrowRight':
-            e.preventDefault();
-            pdfViewer.showNextPage();
-            break;
-        case 'Home':
-            e.preventDefault();
-            const pageInput = document.getElementById('pageInput');
-            if (pageInput) {
-                pageInput.value = 1;
-                pdfViewer.goToPage();
-            }
-            break;
-        case 'End':
-            e.preventDefault();
-            const pageInputEnd = document.getElementById('pageInput');
-            if (pageInputEnd) {
-                pageInputEnd.value = pdfViewer.getTotalPages();
-                pdfViewer.goToPage();
-            }
-            break;
+    case 'ArrowLeft':
+        e.preventDefault();
+        pdfViewer.showPrevPage();
+        break;
+    case 'ArrowRight':
+        e.preventDefault();
+        pdfViewer.showNextPage();
+        break;
+    case 'Home':
+        e.preventDefault();
+        const pageInput = document.getElementById('pageInput');
+        if (pageInput) {
+            pageInput.value = 1;
+            pdfViewer.goToPage();
+        }
+        break;
+    case 'End':
+        e.preventDefault();
+        const pageInputEnd = document.getElementById('pageInput');
+        if (pageInputEnd) {
+            pageInputEnd.value = pdfViewer.getTotalPages();
+            pdfViewer.goToPage();
+        }
+        break;
     }
 }
 

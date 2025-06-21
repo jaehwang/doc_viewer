@@ -210,9 +210,9 @@ export async function renderPage(pageNum) {
         });
         console.log('Scale calculation method:', 
             currentZoom === 'auto' ? 'Auto (optimal)' :
-            currentZoom === 'page-width' ? 'Page width' :
-            currentZoom === 'page-fit' ? 'Page fit' :
-            'Fixed scale: ' + currentZoom
+                currentZoom === 'page-width' ? 'Page width' :
+                    currentZoom === 'page-fit' ? 'Page fit' :
+                        'Fixed scale: ' + currentZoom
         );
         console.log('=== END PAGE RENDER DEBUG ===');
         
