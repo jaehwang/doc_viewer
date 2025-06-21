@@ -269,8 +269,35 @@ export async function renderPage(pageNum) {
         
         await page.render(renderContext).promise;
         
-        // DOM 레이아웃이 완전히 완료되도록 잠시 대기
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // DOM 레이아웃이 완전히 완료되고 컨테이너 크기가 설정될 때까지 대기
+        let attempts = 0;
+        const maxAttempts = 50;
+        let containerReady = false;
+        
+        while (attempts < maxAttempts && !containerReady) {
+            const containerRect = textLayerDiv.getBoundingClientRect();
+            const parentRect = textLayerDiv.parentElement.getBoundingClientRect();
+            const viewerRect = document.getElementById('viewer')?.getBoundingClientRect();
+            
+            if (containerRect.width > 0 && containerRect.height > 0 && 
+                parentRect.width > 0 && parentRect.height > 0 &&
+                viewerRect && viewerRect.width > 0 && viewerRect.height > 0) {
+                console.log(`Container dimensions ready after ${attempts * 10}ms:`, {
+                    textLayer: { width: containerRect.width, height: containerRect.height },
+                    parent: { width: parentRect.width, height: parentRect.height },
+                    viewer: { width: viewerRect.width, height: viewerRect.height }
+                });
+                containerReady = true;
+                break;
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 10));
+            attempts++;
+        }
+        
+        if (!containerReady) {
+            console.warn('Container dimensions not ready after maximum attempts, proceeding anyway');
+        }
         
         // 텍스트 레이어 렌더링 (scaledViewport 사용하여 좌표계 일치)
         await renderTextLayer(page, scaledViewport, textLayerDiv);
@@ -526,13 +553,18 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
                 calculatedFontSize: fontHeight
             });
             
-            // 최종 계산된 위치
             const calculatedPosition = {
                 left: tx[4],
                 top: tx[5] - fontHeight,
                 fontSize: fontHeight
             };
-            console.log('Calculated position (before scale):', calculatedPosition);
+            
+            console.log('Position calculation using original PDF coordinates:', {
+                originalLeft: tx[4], 
+                originalTop: tx[5] - fontHeight,
+                finalPosition: calculatedPosition,
+                note: 'Using original PDF coordinates - CSS transform will handle scaling'
+            });
             
             // 텍스트 너비 계산 - 두 가지 방법으로 시도
             const textWidth = textItem.width;
@@ -563,9 +595,9 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
             const span = document.createElement('span');
             span.textContent = textItem.str;
             span.style.position = 'absolute';
-            span.style.left = tx[4] + 'px';
-            span.style.top = (tx[5] - fontHeight) + 'px';
-            span.style.fontSize = fontHeight + 'px';
+            span.style.left = calculatedPosition.left + 'px';
+            span.style.top = calculatedPosition.top + 'px';
+            span.style.fontSize = calculatedPosition.fontSize + 'px';
             span.style.width = finalWidth + 'px'; // 계산된 너비 사용
             span.style.fontFamily = 'sans-serif';
             span.style.color = 'transparent';
@@ -585,16 +617,39 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
                 width: span.style.width,
                 finalWidthUsed: finalWidth,
                 transform: span.style.transform,
-                textContent: span.textContent
+                textContent: span.textContent,
+                calculatedPositionUsed: calculatedPosition,
+                actualAppliedLeft: calculatedPosition.left,
+                actualAppliedTop: calculatedPosition.top
             });
             console.log('--- END TEXT ITEM DEBUG ---');
             
             textLayerDiv.appendChild(span);
         });
         
-        // 텍스트 레이어 전체에 CSS transform 적용
-        textLayerDiv.style.transform = `scale(${scaleRatio})`;
+        // 실제 캔버스 크기를 기반으로 올바른 스케일 비율 계산
+        const canvas = textLayerDiv.parentElement.querySelector('canvas');
+        let actualScaleRatio = scaleRatio;
+        
+        if (canvas) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const actualScaleX = canvasRect.width / viewport.width;
+            const actualScaleY = canvasRect.height / viewport.height;
+            actualScaleRatio = Math.min(actualScaleX, actualScaleY);
+            
+            console.log('Corrected scale ratio calculation:', {
+                originalScaleRatio: scaleRatio,
+                canvasSize: { width: canvasRect.width, height: canvasRect.height },
+                pdfViewport: { width: viewport.width, height: viewport.height },
+                calculatedScale: { x: actualScaleX, y: actualScaleY },
+                finalScaleRatio: actualScaleRatio
+            });
+        }
+        
+        // 텍스트 레이어 전체에 CSS transform 적용하여 PDF 좌표계를 뷰어 좌표계로 변환
+        textLayerDiv.style.transform = `scale(${actualScaleRatio})`;
         textLayerDiv.style.transformOrigin = '0 0';
+        console.log('Applied CSS transform to text layer for coordinate system conversion:', `scale(${actualScaleRatio})`);
         
         // === 최종 레이어 디버깅 정보 ===
         console.log('Final text layer transform:', textLayerDiv.style.transform);
@@ -610,22 +665,16 @@ export async function renderTextLayer(page, viewport, textLayerDiv) {
                 const layerRect = textLayerDiv.getBoundingClientRect();
                 console.log(`Text element ${index} after scaling:`, {
                     textContent: span.textContent,
-                    styleWidth: span.style.width,
-                    styleLeft: span.style.left,
-                    styleTop: span.style.top,
-                    boundingRect: {
-                        width: rect.width,
-                        height: rect.height,
-                        left: rect.left - layerRect.left, // 레이어 기준 상대 위치
-                        top: rect.top - layerRect.top
-                    },
+                    expectedPosition: { left: span.style.left, top: span.style.top },
                     actualBoundingRect: {
-                        absoluteLeft: rect.left,
-                        absoluteTop: rect.top,
-                        absoluteRight: rect.right,
-                        absoluteBottom: rect.bottom,
+                        left: rect.left,
+                        top: rect.top,
                         width: rect.width,
                         height: rect.height
+                    },
+                    positionDifference: {
+                        leftDiff: rect.left - parseFloat(span.style.left),
+                        topDiff: rect.top - parseFloat(span.style.top)
                     },
                     layerBoundingRect: {
                         left: layerRect.left,
