@@ -105,124 +105,30 @@ export async function renderPage(pageNum) {
         uiCallbacks.showLoading();
         
         const page = await pdfDoc.getPage(pageNum);
+        const elements = getViewerElements();
         
-        // DOM 요소들을 먼저 가져오기
-        const viewerContainer = safeGetElement('viewerContainer');
-        const viewer = safeGetElement('viewer');
-        const pdfContainer = safeGetElement('pdfContainer');
-        
-        if (!viewer) {
+        if (!elements.viewer) {
             throw new Error('Viewer element not found');
         }
         
-        // PDF 컨테이너가 보이도록 설정 (CSS display 확인)
-        if (pdfContainer && pdfContainer.style.display === 'none') {
-            pdfContainer.style.display = 'block';
-        }
+        setupContainerStyles(elements);
+        elements.viewer.innerHTML = '';
         
-        // 컨테이너 크기 강제 설정 (CSS 문제 해결용)
-        if (viewerContainer) {
-            viewerContainer.style.width = '100%';
-            viewerContainer.style.height = '100vh';
-            viewerContainer.style.minHeight = '600px';
-            viewerContainer.style.display = 'block';
-            viewerContainer.style.position = 'relative';
-        }
-        
-        if (pdfContainer) {
-            pdfContainer.style.width = '100%';
-            pdfContainer.style.height = 'auto';
-            pdfContainer.style.minHeight = '600px';
-            pdfContainer.style.display = 'flex';
-            pdfContainer.style.justifyContent = 'center';
-            pdfContainer.style.alignItems = 'flex-start';
-            pdfContainer.style.padding = '20px';
-        }
-        
-        
-        // 기존 내용 제거
-        viewer.innerHTML = '';
-        
-        let scaleToUse = 1.0;
-        let viewport = page.getViewport({ scale: 1.0 });
-        
-        // 현재 줌 설정에 따라 스케일 결정
-        if (currentZoom === 'auto') {
-            scaleToUse = calculateOptimalScale(viewport, viewerContainer);
-        } else if (currentZoom === 'page-width') {
-            const containerWidth = viewerContainer ? viewerContainer.clientWidth : window.innerWidth * 0.95;
-            scaleToUse = Math.max(1.0, (containerWidth - 40) / viewport.width); // 최소 100% 보장
-        } else if (currentZoom === 'page-fit') {
-            scaleToUse = calculateOptimalScale(viewport, viewerContainer); // 'auto'와 동일하게 처리
-        } else {
-            // 고정 스케일 사용 - 컨테이너 크기와 무관하게 고정값 사용
-            const parsedZoom = parseFloat(currentZoom);
-            if (!isNaN(parsedZoom)) {
-                scaleToUse = parsedZoom; // 컨테이너 크기 변화와 무관하게 고정
-            } else {
-                scaleToUse = 1.0; // 기본값
-            }
-        }
-        
-        // currentScale 값 동기화
+        const viewport = page.getViewport({ scale: 1.0 });
+        const scaleToUse = calculateScale(viewport, elements.viewerContainer);
         currentScale = scaleToUse;
         
-        
         const scaledViewport = page.getViewport({ scale: scaleToUse });
+        const { pageDiv, canvas, textLayerDiv } = createPageElements(scaledViewport);
         
-        // 페이지 컨테이너 생성
-        const pageDiv = document.createElement('div');
-        pageDiv.className = 'page';
-        pageDiv.style.position = 'relative';
-        pageDiv.style.margin = '0 auto';
-        pageDiv.style.display = 'flex';
-        pageDiv.style.justifyContent = 'center';
-        pageDiv.style.alignItems = 'center';
+        elements.viewer.appendChild(pageDiv);
         
-        // 캔버스 생성
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
-        canvas.style.display = 'block';
-        canvas.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
-        canvas.style.borderRadius = '4px';
-        canvas.style.backgroundColor = 'white';
-        
-        // 페이지 컨테이너 크기를 캔버스에 맞게 조정
-        pageDiv.style.width = scaledViewport.width + 'px';
-        pageDiv.style.height = scaledViewport.height + 'px';
-        
-        pageDiv.appendChild(canvas);
-        
-        // 텍스트 레이어 컨테이너 생성
-        const textLayerDiv = document.createElement('div');
-        textLayerDiv.className = 'textLayer';
-        textLayerDiv.style.position = 'absolute';
-        textLayerDiv.style.left = '0';
-        textLayerDiv.style.top = '0';
-        textLayerDiv.style.width = scaledViewport.width + 'px';
-        textLayerDiv.style.height = scaledViewport.height + 'px';
-        textLayerDiv.style.overflow = 'hidden';
-        textLayerDiv.style.opacity = '0.2';
-        textLayerDiv.style.lineHeight = '1.0';
-        textLayerDiv.style.userSelect = 'text';
-        textLayerDiv.style.pointerEvents = 'auto';
-        
-        pageDiv.appendChild(textLayerDiv);
-        viewer.appendChild(pageDiv);
-        
-        // 캔버스 렌더링
         const renderContext = {
-            canvasContext: ctx,
+            canvasContext: canvas.getContext('2d'),
             viewport: scaledViewport
         };
         
         await page.render(renderContext).promise;
-        
-        
-        // 텍스트 레이어 렌더링 (scaledViewport 사용하여 좌표계 일치)
         await renderTextLayer(page, scaledViewport, textLayerDiv);
         
         uiCallbacks.hideLoading();
@@ -232,6 +138,112 @@ export async function renderPage(pageNum) {
         uiCallbacks.hideLoading();
         uiCallbacks.showError('페이지를 렌더링할 수 없습니다.');
     }
+}
+
+// 뷰어 DOM 요소들 가져오기
+function getViewerElements() {
+    return {
+        viewerContainer: safeGetElement('viewerContainer'),
+        viewer: safeGetElement('viewer'),
+        pdfContainer: safeGetElement('pdfContainer')
+    };
+}
+
+// 컨테이너 스타일 설정
+function setupContainerStyles(elements) {
+    const { viewerContainer, pdfContainer } = elements;
+    
+    if (pdfContainer && pdfContainer.style.display === 'none') {
+        pdfContainer.style.display = 'block';
+    }
+    
+    if (viewerContainer) {
+        viewerContainer.style.width = '100%';
+        viewerContainer.style.height = '100vh';
+        viewerContainer.style.minHeight = '600px';
+        viewerContainer.style.display = 'block';
+        viewerContainer.style.position = 'relative';
+    }
+    
+    if (pdfContainer) {
+        pdfContainer.style.width = '100%';
+        pdfContainer.style.height = 'auto';
+        pdfContainer.style.minHeight = '600px';
+        pdfContainer.style.display = 'flex';
+        pdfContainer.style.justifyContent = 'center';
+        pdfContainer.style.alignItems = 'flex-start';
+        pdfContainer.style.padding = '20px';
+    }
+}
+
+// 스케일 계산
+function calculateScale(viewport, viewerContainer) {
+    if (currentZoom === 'auto') {
+        return calculateOptimalScale(viewport, viewerContainer);
+    } else if (currentZoom === 'page-width') {
+        const containerWidth = viewerContainer ? viewerContainer.clientWidth : window.innerWidth * 0.95;
+        return Math.max(1.0, (containerWidth - 40) / viewport.width);
+    } else if (currentZoom === 'page-fit') {
+        return calculateOptimalScale(viewport, viewerContainer);
+    } else {
+        const parsedZoom = parseFloat(currentZoom);
+        return !isNaN(parsedZoom) ? parsedZoom : 1.0;
+    }
+}
+
+// 페이지 요소들 생성
+function createPageElements(scaledViewport) {
+    const pageDiv = createPageDiv(scaledViewport);
+    const canvas = createCanvas(scaledViewport);
+    const textLayerDiv = createTextLayerDiv(scaledViewport);
+    
+    pageDiv.appendChild(canvas);
+    pageDiv.appendChild(textLayerDiv);
+    
+    return { pageDiv, canvas, textLayerDiv };
+}
+
+// 페이지 컨테이너 생성
+function createPageDiv(scaledViewport) {
+    const pageDiv = document.createElement('div');
+    pageDiv.className = 'page';
+    pageDiv.style.position = 'relative';
+    pageDiv.style.margin = '0 auto';
+    pageDiv.style.display = 'flex';
+    pageDiv.style.justifyContent = 'center';
+    pageDiv.style.alignItems = 'center';
+    pageDiv.style.width = scaledViewport.width + 'px';
+    pageDiv.style.height = scaledViewport.height + 'px';
+    return pageDiv;
+}
+
+// 캔버스 생성
+function createCanvas(scaledViewport) {
+    const canvas = document.createElement('canvas');
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
+    canvas.style.display = 'block';
+    canvas.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+    canvas.style.borderRadius = '4px';
+    canvas.style.backgroundColor = 'white';
+    return canvas;
+}
+
+// 텍스트 레이어 컨테이너 생성
+function createTextLayerDiv(scaledViewport) {
+    const textLayerDiv = document.createElement('div');
+    textLayerDiv.className = 'textLayer';
+    textLayerDiv.style.position = 'absolute';
+    textLayerDiv.style.left = '0';
+    textLayerDiv.style.top = '0';
+    textLayerDiv.style.width = scaledViewport.width + 'px';
+    textLayerDiv.style.height = scaledViewport.height + 'px';
+    textLayerDiv.style.overflow = 'hidden';
+    textLayerDiv.style.opacity = '0.2';
+    textLayerDiv.style.lineHeight = '1.0';
+    textLayerDiv.style.userSelect = 'text';
+    textLayerDiv.style.pointerEvents = 'auto';
+    return textLayerDiv;
 }
 
 // 뷰어 컨테이너 크기 동적 조정
@@ -301,93 +313,116 @@ export function calculateOptimalScale(viewport, container) {
 // 텍스트 레이어 렌더링 (CSS Transform 방식)
 export async function renderTextLayer(page, viewport, textLayerDiv) {
     try {
-        // 기존 내용 제거
         textLayerDiv.innerHTML = '';
         
-        // 원본 viewport (스케일 1.0)로 텍스트 내용 가져오기
         const originalViewport = page.getViewport({ scale: 1.0 });
         const textContent = await page.getTextContent();
-        
-        // 스케일 비율 계산
         const scaleRatio = viewport.scale / originalViewport.scale;
         
-        // 컨테이너 요소들을 안전하게 가져오기
-        const viewerContainer = document.getElementById('viewerContainer');
-        const pdfContainer = document.getElementById('pdfContainer');
-        const viewer = document.getElementById('viewer');
+        await waitForLayoutReady(textLayerDiv);
         
-        // DOM 레이아웃이 완료될 때까지 대기
-        await new Promise(resolve => {
-            if (textLayerDiv.offsetWidth > 0 && textLayerDiv.offsetHeight > 0) {
-                resolve();
-            } else {
-                // 레이아웃이 완료되지 않은 경우 requestAnimationFrame으로 대기
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => resolve());
-                });
-            }
-        });
+        processTextItems(textContent, originalViewport, textLayerDiv);
         
-        textContent.items.forEach(function(textItem, index) {
-            if (!textItem.str || textItem.str.trim() === '') {
-                return;
-            }
-            
-            const tx = pdfjsLib.Util.transform(
-                pdfjsLib.Util.transform(originalViewport.transform, textItem.transform),
-                [1, 0, 0, -1, 0, 0]
-            );
-            
-            const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
-            
-            const calculatedPosition = {
-                left: tx[4],
-                top: tx[5] - fontHeight,
-                fontSize: fontHeight
-            };
-            
-            const textWidth = textItem.width;
-            const scaledTextWidth = textWidth * (fontHeight / textItem.height);
-            const matrixScaledWidth = textWidth * Math.abs(tx[0] / textItem.transform[0]);
-            const directScaledWidth = textWidth * Math.abs(tx[0]) / textItem.transform[0];
-            const finalWidth = Math.max(matrixScaledWidth, scaledTextWidth, directScaledWidth);
-            
-            const span = document.createElement('span');
-            span.textContent = textItem.str;
-            span.style.position = 'absolute';
-            span.style.left = calculatedPosition.left + 'px';
-            span.style.top = calculatedPosition.top + 'px';
-            span.style.fontSize = calculatedPosition.fontSize + 'px';
-            span.style.width = finalWidth + 'px';
-            span.style.fontFamily = 'sans-serif';
-            span.style.color = 'transparent';
-            span.style.userSelect = 'text';
-            span.style.cursor = 'text';
-            span.style.whiteSpace = 'pre';
-            span.style.pointerEvents = 'auto';
-            span.style.transformOrigin = '0% 0%';
-            span.style.overflow = 'visible';
-            span.style.boxSizing = 'border-box';
-            
-            textLayerDiv.appendChild(span);
-        });
-        
-        const canvas = textLayerDiv.parentElement.querySelector('canvas');
-        let actualScaleRatio = scaleRatio;
-        
-        if (canvas) {
-            const canvasRect = canvas.getBoundingClientRect();
-            const actualScaleX = canvasRect.width / viewport.width;
-            const actualScaleY = canvasRect.height / viewport.height;
-            actualScaleRatio = Math.min(actualScaleX, actualScaleY);
-        }
-        
-        textLayerDiv.style.transform = `scale(${actualScaleRatio})`;
-        textLayerDiv.style.transformOrigin = '0 0';
+        const actualScaleRatio = calculateActualScaleRatio(textLayerDiv, viewport, scaleRatio);
+        applyTextTransform(textLayerDiv, actualScaleRatio);
         
     } catch (error) {
         console.error('텍스트 레이어 렌더링 오류:', error);
     }
+}
+
+// DOM 레이아웃 준비 대기
+async function waitForLayoutReady(textLayerDiv) {
+    return new Promise(resolve => {
+        if (textLayerDiv.offsetWidth > 0 && textLayerDiv.offsetHeight > 0) {
+            resolve();
+        } else {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => resolve());
+            });
+        }
+    });
+}
+
+// 텍스트 아이템들 처리
+function processTextItems(textContent, originalViewport, textLayerDiv) {
+    textContent.items.forEach(function(textItem) {
+        if (!textItem.str || textItem.str.trim() === '') {
+            return;
+        }
+        
+        const position = calculateTextPosition(textItem, originalViewport);
+        const span = createTextSpan(textItem, position);
+        textLayerDiv.appendChild(span);
+    });
+}
+
+// 텍스트 위치 계산
+function calculateTextPosition(textItem, originalViewport) {
+    const tx = pdfjsLib.Util.transform(
+        pdfjsLib.Util.transform(originalViewport.transform, textItem.transform),
+        [1, 0, 0, -1, 0, 0]
+    );
+    
+    const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
+    const textWidth = textItem.width;
+    const scaledTextWidth = textWidth * (fontHeight / textItem.height);
+    const matrixScaledWidth = textWidth * Math.abs(tx[0] / textItem.transform[0]);
+    const directScaledWidth = textWidth * Math.abs(tx[0]) / textItem.transform[0];
+    const finalWidth = Math.max(matrixScaledWidth, scaledTextWidth, directScaledWidth);
+    
+    return {
+        left: tx[4],
+        top: tx[5] - fontHeight,
+        fontSize: fontHeight,
+        width: finalWidth
+    };
+}
+
+// 텍스트 span 요소 생성
+function createTextSpan(textItem, position) {
+    const span = document.createElement('span');
+    span.textContent = textItem.str;
+    
+    Object.assign(span.style, {
+        position: 'absolute',
+        left: position.left + 'px',
+        top: position.top + 'px',
+        fontSize: position.fontSize + 'px',
+        width: position.width + 'px',
+        fontFamily: 'sans-serif',
+        color: 'transparent',
+        userSelect: 'text',
+        cursor: 'text',
+        whiteSpace: 'pre',
+        pointerEvents: 'auto',
+        transformOrigin: '0% 0%',
+        overflow: 'visible',
+        boxSizing: 'border-box'
+    });
+    
+    return span;
+}
+
+// 실제 스케일 비율 계산
+function calculateActualScaleRatio(textLayerDiv, viewport, scaleRatio) {
+    const canvas = textLayerDiv.parentElement.querySelector('canvas');
+    let actualScaleRatio = scaleRatio;
+    
+    if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const actualScaleX = canvasRect.width / viewport.width;
+        const actualScaleY = canvasRect.height / viewport.height;
+        actualScaleRatio = Math.min(actualScaleX, actualScaleY);
+    }
+    
+    return actualScaleRatio;
+}
+
+// 텍스트 변환 적용
+function applyTextTransform(textLayerDiv, actualScaleRatio) {
+    textLayerDiv.style.transform = `scale(${actualScaleRatio})`;
+    textLayerDiv.style.transformOrigin = '0 0';
 }
 
 // 수동 텍스트 레이어 구현 (폴백용)
