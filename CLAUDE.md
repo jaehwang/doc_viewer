@@ -102,6 +102,18 @@ The `memory-bank/` directory contains project context and documentation:
 - UI callbacks system for decoupled module communication
 - State management centralized in `app.js` with module-specific state in respective files
 
+## Coding Standards
+
+**IMPORTANT**: All code must follow the coding standards defined in `specs/coding-rules.md`. This includes:
+- Function length limit (40 lines)
+- Parameter limit (5 parameters)
+- Nesting depth limit (3 levels)
+- Meaningful naming conventions
+- Proper error handling
+- Single responsibility principle
+
+Before writing any code, review `specs/coding-rules.md` and ensure compliance with all rules.
+
 ## Development Notes
 
 ### Styling
