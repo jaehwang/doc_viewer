@@ -283,14 +283,14 @@ function handleComparisonFile(file, type) {
 }
 
 // PDF 파일 처리
-async function handlePDFFile(fileOrPath) {
+async function handlePDFFile(fileOrPathOrData) {
     let data;
     let fileNameToDisplay;
 
-    if (typeof fileOrPath === 'string') { // 경로가 주어진 경우 (자동 로드용)
-        fileNameToDisplay = fileOrPath.split('/').pop();
+    if (typeof fileOrPathOrData === 'string') { // 경로가 주어진 경우 (자동 로드용)
+        fileNameToDisplay = fileOrPathOrData.split('/').pop();
         try {
-            const response = await fetch(fileOrPath);
+            const response = await fetch(fileOrPathOrData);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -302,10 +302,13 @@ async function handlePDFFile(fileOrPath) {
             console.error('Fetch 오류:', error);
             return;
         }
+    } else if (fileOrPathOrData instanceof Uint8Array) { // Uint8Array가 주어진 경우 (원격 파일 로드용)
+        data = fileOrPathOrData;
+        fileNameToDisplay = currentFileName || 'remote-file.pdf';
     } else { // File 객체가 주어진 경우 (사용자 업로드용)
-        fileNameToDisplay = fileOrPath.name;
+        fileNameToDisplay = fileOrPathOrData.name;
         // 파일 크기 검증 (50MB 제한)
-        if (fileOrPath.size > 50 * 1024 * 1024) {
+        if (fileOrPathOrData.size > 50 * 1024 * 1024) {
             showError('파일 크기가 너무 큽니다. 50MB 이하의 파일을 선택해주세요.');
             return;
         }
@@ -314,7 +317,7 @@ async function handlePDFFile(fileOrPath) {
             const fileReader = new FileReader();
             fileReader.onload = (e) => resolve(new Uint8Array(e.target.result));
             fileReader.onerror = (e) => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
-            fileReader.readAsArrayBuffer(fileOrPath);
+            fileReader.readAsArrayBuffer(fileOrPathOrData);
         });
     }
     
@@ -721,11 +724,8 @@ export async function fetchFileByUrl(url, handlers = {}) {
         else throw new Error('지원하지 않는 파일 형식입니다. PDF 또는 Markdown 파일만 가능합니다.');
 
         if (fileType === 'pdf') {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`파일을 불러올 수 없습니다. (HTTP ${response.status})`);
-            const arrayBuffer = await response.arrayBuffer();
             _setCurrentFileName(fileNameFromUrl);
-            await _handlePDFFile(new Uint8Array(arrayBuffer));
+            await _handlePDFFile(url);
         } else if (fileType === 'markdown') {
             const response = await fetch(url);
             if (!response.ok) throw new Error(`파일을 불러올 수 없습니다. (HTTP ${response.status})`);
