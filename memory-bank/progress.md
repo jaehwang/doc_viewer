@@ -11,7 +11,8 @@
   - GitHub raw 파일 등 다양한 소스에서 URL 로딩 테스트 성공
 * 원격 파일 로드 UI 및 fetchFileByUrl 함수 구현, CORS 허용 서버에서 정상 동작 확인
 * fetchFileByUrl의 currentFileName 상태가 핸들러(setCurrentFileName)로 일관되게 갱신됨
-* Jest 기반 테스트 환경 구축 및 테스트 코드(app.test.js, pdf-viewer.test.js)에서 모든 시나리오(정상, 실패, CORS, HTTP 에러, 실제 네트워크) 100% 통과
+* **`app.js` 리팩터링 및 모듈 분리 완료**: Markdown 관련 코드를 `js/markdown-viewer.js`로 분리하고, 이에 맞춰 `app.js`, `ui.js`, `pdf-viewer.js`를 수정.
+* **테스트 스위트 확장 및 개선**: `tests/markdown-viewer.test.js`를 추가하고, 기존 테스트를 리팩터링된 코드에 맞게 수정하여 모든 테스트 통과 확인.
 * memory bank, README, 설계 문서 등 주요 문서의 동기화 완료
 
 ## What's Left to Build
@@ -23,8 +24,8 @@
   - URL 입력 UI/UX 개선
   - 더 다양한 파일 소스 지원 테스트
 * CORS 우회(프록시) 옵션 안내 및 테스트용 CORS 허용 파일 목록 제공
-* js/markdown-viewer.js, js/diff-viewer.js 등 README에 언급된 모듈화된 JS 파일의 실제 구현 및 app.js와의 통합(현재 js/ 폴더에 없음)
-* 테스트 커버리지 확대: app.test.js, pdf-viewer.test.js 외 다른 모듈(Markdown, Diff 등)에 대한 단위/통합 테스트 추가
+* `js/diff-viewer.js` 모듈화: 현재 `app.js`에 포함된 문서 비교 로직을 별도 파일로 분리하는 작업 검토.
+* 테스트 커버리지 확대: `js/diff-viewer.js` 등 추가 모듈에 대한 단위/통합 테스트 추가
 * LICENSE 파일 생성 및 명시
 * 커스터마이징 기능 강화(UI 테마, Mermaid 테마 등)
 * 더 상세한 오류 처리 및 사용자 피드백 메커니즘
@@ -36,6 +37,10 @@
 * 원격 파일 로드 기능이 UI/핸들러/예외 처리까지 구현됨
 * fetchFileByUrl의 파일명 상태 동기화 및 테스트 신뢰성 확보
 * **PDF 페이지 간 크기 불일치 문제 해결(`commit: 59bce91`)**
+* **`app.js` 리팩터링 완료** (2025-06-22):
+  - `js/markdown-viewer.js` 모듈을 생성하여 Markdown 관련 기능 분리.
+  - `app.js`, `ui.js`, `pdf-viewer.js`의 의존성 구조 개선.
+  - `tests/markdown-viewer.test.js` 추가 및 기존 테스트 코드 수정 완료.
 * **PDF 텍스트 선택 문제 적극적 해결 중** (2025-01-21):
   - 텍스트 요소 너비 정확성 개선: 3가지 방법으로 너비 계산 및 최대값 사용
   - 컨테이너 크기 0 문제 해결: CSS 스타일 강제 적용 및 DOM 레이아웃 완료 대기
@@ -55,7 +60,8 @@
 * 인터넷 연결이 필요함(CDN 라이브러리 사용 시)
 * **CORS 정책 제한**: 일부 외부 서버에서는 CORS 정책으로 인해 URL 로딩이 제한될 수 있음 (에러 메시지로 안내됨)
 * README.md의 프로젝트 구조와 실제 파일 구조 간 약간의 불일치 존재 가능성
-* README.md에 언급된 일부 기능(Markdown 뷰어, 문서 비교 등)을 담당하는 js/markdown-viewer.js, js/diff-viewer.js 파일이 현재 js/ 폴더에 없음(app.js 내부 통합 또는 미구현 상태)
+* **`js/markdown-viewer.js` 구현 완료**: README.md에 언급되었던 가상 파일이 실제 코드로 구현됨.
+* README.md에 언급된 일부 기능(문서 비교 등)을 담당하는 `js/diff-viewer.js` 파일이 현재 `app.js`에 통합되어 있음 (향후 분리 가능).
 
 ## Evolution of Project Decisions
 

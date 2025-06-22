@@ -6,15 +6,31 @@ const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
+
 // UI 모듈 mock
-jest.mock('./js/ui.js', () => ({
+jest.mock('../js/ui.js', () => ({
   showLoading: jest.fn(),
   hideLoading: jest.fn(),
   showError: jest.fn(),
   showPDFViewer: jest.fn(),
   showMarkdownViewer: jest.fn(),
   hideError: jest.fn()
-}), { virtual: true });
+}));
+
+// marked 라이브러리 mock
+global.marked = {
+  parse: jest.fn((text) => `<p>${text}</p>`),
+  setOptions: jest.fn(),
+};
+
+// mermaid.js mock
+global.mermaid = {
+  initialize: jest.fn(),
+  render: jest.fn().mockResolvedValue({ svg: '<svg></svg>' }),
+};
+
+// fetch API mock
+global.fetch = jest.fn();
 
 // JSDOM 환경에서 필요한 추가 설정
 Object.defineProperty(window, 'matchMedia', {
@@ -50,6 +66,16 @@ Object.defineProperty(window, 'localStorage', {
 // 더 정확한 DOM 요소 mock 생성 함수
 function createMockElement(overrides = {}) {
   const element = {
+    getBoundingClientRect: () => ({
+      width: 800,
+      height: 600,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 600,
+      x: 0,
+      y: 0,
+    }),
     style: {},
     textContent: '',
     innerHTML: '',
@@ -62,6 +88,7 @@ function createMockElement(overrides = {}) {
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
     querySelector: jest.fn(),
+    querySelectorAll: jest.fn().mockReturnValue([]),
     classList: {
       add: jest.fn(),
       remove: jest.fn(),
@@ -160,6 +187,7 @@ global.pdfjsLib = {
           width: 100,
           height: 100,
           transform: [1, 0, 0, 1, 0, 0],
+          scale: 1.0,
         }),
         render: jest.fn().mockReturnValue({
           promise: Promise.resolve(),

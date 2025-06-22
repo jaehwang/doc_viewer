@@ -1,12 +1,13 @@
 import * as pdfViewer from './pdf-viewer.js';
-import { showLoading, hideLoading, showError, hideError, showPDFViewer, showMarkdownViewer } from './ui.js';
+import * as markdownViewer from './markdown-viewer.js';
+import { showLoading, hideLoading, showError, showPDFViewer, showMarkdownViewer } from './ui.js';
 
 // PDF.js 워커 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // 전역 변수
 let currentFileType = null;
-let currentFileName = null;
+export let currentFileName = null;
 
 let comparisonMode = false;
 let oldDocument = null;
@@ -31,10 +32,6 @@ const errorText = document.getElementById('errorText');
 const fileName = document.getElementById('fileName');
 const fileType = document.getElementById('fileType');
 const pdfContainer = document.getElementById('pdfContainer');
-const markdownContainer = document.getElementById('markdownContainer');
-const markdownContent = document.getElementById('markdownContent');
-const markdownSidebar = document.getElementById('markdownSidebar');
-const tableOfContents = document.getElementById('tableOfContents');
 const pdfNavControls = document.getElementById('pdfNavControls');
 
 const viewModeTab = document.getElementById('viewModeTab');
@@ -51,14 +48,12 @@ const compareBtn = document.getElementById('compareBtn');
 const comparisonContainer = document.getElementById('comparisonContainer');
 const comparisonContent = document.getElementById('comparisonContent');
 const markdownNavControls = document.getElementById('markdownNavControls');
-const tocToggle = document.getElementById('tocToggle');
-const scrollTop = document.getElementById('scrollTop');
-const closeToc = document.getElementById('closeToc');
 
 // 초기화
 document.addEventListener('DOMContentLoaded', function() {
-    // PDF.js 뷰어 초기화
+    // 뷰어 모듈 초기화
     pdfViewer.initializePDFViewer();
+    markdownViewer.initializeMarkdownViewer();
     
     // UI 콜백 설정
     pdfViewer.setUICallbacks({
@@ -66,13 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
         hideLoading,
         showError,
         showPDFViewer
-    });
-    
-    // Mermaid 초기화
-    mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose'
     });
     
     setupEventListeners();
@@ -129,11 +117,6 @@ function setupEventListeners() {
     compareModeTab.addEventListener('click', () => switchMode('compare'));
     
     compareBtn.addEventListener('click', compareDocuments);
-    
-    // Markdown 네비게이션 이벤트
-    tocToggle.addEventListener('click', toggleTableOfContents);
-    scrollTop.addEventListener('click', scrollToTop);
-    closeToc.addEventListener('click', hideTableOfContents);
     
     // 키보드 이벤트
     document.addEventListener('keydown', handleKeyboard);
@@ -242,7 +225,7 @@ function handleFile(file) {
         handlePDFFile(file);
     } else if (fileExtension === 'md' || fileExtension === 'markdown') {
         currentFileType = 'markdown';
-        handleMarkdownFile(file);
+        markdownViewer.loadMarkdownFromFile(file);
     } else {
         showError('지원되지 않는 파일 형식입니다. PDF 또는 Markdown 파일을 선택해주세요.');
         return;
@@ -321,13 +304,15 @@ async function handlePDFFile(fileOrPathOrData) {
         } catch (error) {
             hideLoading();
             showError(`파일을 로드하는 중 오류가 발생했습니다: ${error.message}`);
-            console.error('Fetch 오류:', error);
-            console.error('Error details:', {
-                name: error.name,
-                message: error.message,
-                stack: error.stack,
-                url: fileOrPathOrData
-            });
+            if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+                console.error('Fetch 오류:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                    url: fileOrPathOrData
+                });
+            }
             return;
         }
     } else if (fileOrPathOrData instanceof Uint8Array) { // Uint8Array가 주어진 경우 (원격 파일 로드용)
@@ -350,165 +335,12 @@ async function handlePDFFile(fileOrPathOrData) {
     }
     
     currentFileName = fileNameToDisplay; // 파일 이름 설정
-    window.currentFileName = fileNameToDisplay; // 전역 변수 업데이트
     currentFileType = 'pdf'; // 파일 타입 설정
     showLoading();
     
     // 모듈 함수 사용
     await pdfViewer.loadPDF(data);
-    showPDFViewer();
     hideLoading();
-}
-
-// Markdown 파일 처리
-function handleMarkdownFile(file) {
-    
-    // 파일 크기 검증 (10MB 제한)
-    if (file.size > 10 * 1024 * 1024) {
-        showError('파일 크기가 너무 큽니다. 10MB 이하의 파일을 선택해주세요.');
-        return;
-    }
-    
-    showLoading();
-    currentFileName = file.name; // 전역 변수에 파일 이름 설정
-    
-    const fileReader = new FileReader();
-    fileReader.onload = function(e) {
-        const markdownText = e.target.result;
-        loadMarkdown(markdownText, file.name); // 파일 이름 전달
-    };
-    
-    fileReader.onerror = function() {
-        hideLoading();
-        showError('파일을 읽는 중 오류가 발생했습니다.');
-    };
-    
-    fileReader.readAsText(file, 'UTF-8');
-}
-
-// Markdown 로드
-async function loadMarkdown(markdownText, fileName) {
-    try {
-        // 파일 이름이 전달되지 않은 경우 기본값 설정
-        if (!fileName && (typeof currentFileName === 'undefined' || currentFileName === null)) {
-            window.currentFileName = 'untitled.md';
-        } else if (fileName) {
-            window.currentFileName = fileName;
-        }
-        
-        // UI 업데이트
-        if (fileName) {
-            document.getElementById('fileName').textContent = fileName;
-        }
-        
-        // Marked 설정
-        marked.setOptions({
-            breaks: true,
-            gfm: true,
-            headerIds: true,
-            headerPrefix: 'heading-'
-        });
-        
-        // Markdown을 HTML로 변환
-        let html = marked.parse(markdownText);
-        
-        // Mermaid 다이어그램 처리
-        html = await processMermaidDiagrams(html);
-        
-        // HTML 렌더링
-        markdownContent.innerHTML = html;
-        
-        // 코드 하이라이팅 적용
-        if (typeof Prism !== 'undefined') {
-            Prism.highlightAllUnder(markdownContent);
-        }
-        
-        // 목차 생성
-        generateTableOfContents();
-        showMarkdownViewer();
-        hideLoading();
-        
-    } catch (error) {
-        console.error('Markdown 로드 중 오류 발생:', error);
-        hideLoading();
-        showError(`Markdown 파일을 로드할 수 없습니다: ${error.message}`);
-    }
-}
-
-// Mermaid 다이어그램 처리
-async function processMermaidDiagrams(html) {
-    // Mermaid 코드 블록 찾기
-    const mermaidRegex = /<pre><code class="language-mermaid">(.*?)<\/code><\/pre>/gs;
-    const matches = [...html.matchAll(mermaidRegex)];
-    
-    for (let i = 0; i < matches.length; i++) {
-        const match = matches[i];
-        const mermaidCode = match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-        const diagramId = `mermaid-diagram-${i}`;
-        
-        try {
-            // Mermaid 다이어그램 렌더링
-            const { svg } = await mermaid.render(diagramId, mermaidCode);
-            const diagramHtml = `<div class="mermaid">${svg}</div>`;
-            html = html.replace(match[0], diagramHtml);
-        } catch (error) {
-            console.error('Mermaid 렌더링 오류:', error);
-            // 오류 시 원본 코드 블록 유지
-        }
-    }
-    
-    return html;
-}
-
-// 목차 생성
-function generateTableOfContents() {
-    const headings = markdownContent.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    const tocHtml = [];
-    
-    headings.forEach((heading, index) => {
-        const level = heading.tagName.toLowerCase();
-        const text = heading.textContent;
-        const id = `heading-${index}`;
-        
-        // 헤딩에 ID 추가
-        heading.id = id;
-        
-        // 목차 항목 생성
-        tocHtml.push(`<li><a href="#${id}" class="toc-${level}">${text}</a></li>`);
-    });
-    
-    if (tocHtml.length > 0) {
-        tableOfContents.innerHTML = `<ul>${tocHtml.join('')}</ul>`;
-        
-        // 목차 링크 클릭 이벤트
-        tableOfContents.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href').substring(1);
-                const targetElement = document.getElementById(targetId);
-                if (targetElement) {
-                    targetElement.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-    } else {
-        tableOfContents.innerHTML = '<p>목차가 없습니다.</p>';
-    }
-}
-
-// 목차 토글
-function toggleTableOfContents() {
-    markdownSidebar.classList.toggle('active');
-}
-
-// 목차 숨김
-function hideTableOfContents() {
-    markdownSidebar.classList.remove('active');
-}
-
-// 맨 위로 스크롤
-function scrollToTop() {
-    markdownContent.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 업로드 섹션 표시
@@ -599,17 +431,6 @@ async function extractPDFText(file) {
     }
 }
 
-// Markdown 텍스트 추출
-async function extractMarkdownText(file) {
-    try {
-        const text = await file.text();
-        return text;
-    } catch (error) {
-        console.error('Markdown 텍스트 추출 오류:', error);
-        throw new Error('Markdown 텍스트를 추출할 수 없습니다.');
-    }
-}
-
 async function compareDocuments() {
     if (!oldDocument || !newDocument) {
         showError('두 문서를 모두 선택해주세요.');
@@ -623,8 +444,8 @@ async function compareDocuments() {
             oldDocumentText = await extractPDFText(oldDocument);
             newDocumentText = await extractPDFText(newDocument);
         } else {
-            oldDocumentText = await extractMarkdownText(oldDocument);
-            newDocumentText = await extractMarkdownText(newDocument);
+            oldDocumentText = await markdownViewer.extractMarkdownText(oldDocument);
+            newDocumentText = await markdownViewer.extractMarkdownText(newDocument);
         }
         
         const diff = Diff.diffWords(oldDocumentText, newDocumentText);
@@ -725,16 +546,11 @@ window.addEventListener('beforeunload', function() {
     }
 });
 
-window.hideError = hideError;
-window.switchMode = switchMode;
-window.compareDocuments = compareDocuments;
-window.currentFileName = currentFileName;
-
 // 원격 파일 로드 함수
 export async function fetchFileByUrl(url, handlers = {}) {
     const {
         handlePDFFile: _handlePDFFile = handlePDFFile,
-        loadMarkdown: _loadMarkdown = loadMarkdown,
+        loadMarkdownFromText: _loadMarkdownFromText = markdownViewer.loadMarkdownFromText,
         showError: _showError = showError,
         showLoading: _showLoading = showLoading,
         hideLoading: _hideLoading = hideLoading,
@@ -759,7 +575,7 @@ export async function fetchFileByUrl(url, handlers = {}) {
             if (!response.ok) throw new Error(`파일을 불러올 수 없습니다. (HTTP ${response.status})`);
             const text = await response.text();
             _setCurrentFileName(fileNameFromUrl);
-            await _loadMarkdown(text, fileNameFromUrl);
+            await _loadMarkdownFromText(text, fileNameFromUrl);
         }
     } catch (err) {
         _hideLoading();
@@ -772,13 +588,15 @@ export async function fetchFileByUrl(url, handlers = {}) {
         }
         
         _showError(errorMsg);
-        console.error('URL 로드 오류:', err);
-        console.error('Error details:', {
-            name: err.name,
-            message: err.message,
-            stack: err.stack,
-            url: url
-        });
+        if (typeof process === 'undefined' || process.env.NODE_ENV !== 'test') {
+            console.error('URL 로드 오류:', err);
+            console.error('Error details:', {
+                name: err.name,
+                message: err.message,
+                stack: err.stack,
+                url: url
+            });
+        }
     } finally {
         _hideLoading();
     }

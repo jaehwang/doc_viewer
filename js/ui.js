@@ -27,10 +27,13 @@ export function hideError() {
 }
 
 // PDF 뷰어 표시
-export function showPDFViewer() {
+export function showPDFViewer(fileNameToDisplay) {
     // 파일 정보 업데이트
-    fileName.textContent = currentFileName;
-    fileType.textContent = 'PDF';
+    const fileNameElement = document.getElementById('fileName');
+    const fileTypeElement = document.getElementById('fileType');
+    
+    fileNameElement.textContent = fileNameToDisplay;
+    fileTypeElement.textContent = 'PDF';
     
     // 컨테이너 전환
     markdownContainer.style.display = 'none';
@@ -45,10 +48,13 @@ export function showPDFViewer() {
 }
 
 // Markdown 뷰어 표시
-export function showMarkdownViewer() {
+export function showMarkdownViewer(fileNameToDisplay) {
     // 파일 정보 업데이트
-    fileName.textContent = currentFileName;
-    fileType.textContent = 'Markdown';
+    const fileNameElement = document.getElementById('fileName');
+    const fileTypeElement = document.getElementById('fileType');
+
+    fileNameElement.textContent = fileNameToDisplay;
+    fileTypeElement.textContent = 'Markdown';
     
     // 컨테이너 전환
     pdfContainer.style.display = 'none';

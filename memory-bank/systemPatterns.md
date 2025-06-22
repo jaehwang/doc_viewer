@@ -25,11 +25,11 @@
 
 *   `index.html`: 애플리케이션의 기본 골격과 UI 요소들을 정의합니다. 모든 JavaScript 파일과 CSS 파일의 진입점입니다.
 *   `css/style.css`: 애플리케이션의 전반적인 시각적 스타일과 레이아웃을 담당합니다.
-*   `js/app.js`: 메인 애플리케이션 로직을 포함하며, 파일 업로드 처리, 뷰어 초기화, UI 이벤트 핸들링 등 전체적인 흐름을 제어합니다. 다른 JS 모듈들을 통합하고 조정하는 역할을 할 가능성이 높습니다.
+*   `js/app.js`: 메인 애플리케이션 로직을 포함하며, 파일 처리, 모드 전환, UI 이벤트 핸들링 등 전체적인 흐름을 제어합니다. 다른 JS 모듈들을 통합하고 조정하는 역할을 합니다.
 *   `js/pdf-viewer.js`: PDF.js 라이브러리를 사용하여 PDF 파일 렌더링, 페이지 네비게이션, 확대/축소 등의 PDF 관련 기능을 담당합니다. `app.js`에 의해 호출되어 사용됩니다.
-*   `js/ui.js`: 사용자 인터페이스 요소(버튼, 드롭다운, 모달 등)의 동적인 제어 및 상호작용 로직을 담당할 수 있습니다. `app.js`와 긴밀하게 연동됩니다.
-*   (가상) `js/markdown-viewer.js`: Markdown 파싱(Marked.js), Mermaid 다이어그램 렌더링(Mermaid.js), 코드 하이라이팅(Prism.js), 목차 생성 등의 Markdown 관련 기능을 담당합니다. (현재 파일 목록에는 없으나, `README.md` 기능상 존재 추정)
-*   (가상) `js/diff-viewer.js`: jsdiff 라이브러리를 사용하여 문서 비교 기능을 담당합니다. (현재 파일 목록에는 없으나, `README.md` 기능상 존재 추정)
+*   `js/markdown-viewer.js`: Marked.js, Mermaid.js, Prism.js 등의 라이브러리를 사용하여 Markdown 파싱, 다이어그램 렌더링, 코드 하이라이팅, 목차 생성 등 Markdown 관련 기능을 담당합니다. `app.js`에 의해 호출되어 사용됩니다.
+*   `js/ui.js`: 사용자 인터페이스 요소(로딩, 에러 메시지, 뷰어 표시 등)의 동적인 제어 및 상호작용 로직을 담당합니다. `app.js` 및 다른 뷰어 모듈들과 연동됩니다.
+*   (가상) `js/diff-viewer.js`: jsdiff 라이브러리를 사용하여 문서 비교 기능을 담당합니다. (현재 `app.js`에 로직이 포함되어 있으며, 향후 분리 가능)
 *   외부 라이브러리 (PDF.js, Marked.js, Mermaid.js, Prism.js, jsdiff): 각 전문 기능을 제공하며, 해당 기능 모듈(`pdf-viewer.js` 등) 또는 `app.js`에서 직접 호출되어 사용됩니다.
 
 ## Critical Implementation Paths
