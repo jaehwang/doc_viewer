@@ -62,7 +62,6 @@
 * **CORS 정책 제한**: 일부 외부 서버에서는 CORS 정책으로 인해 URL 로딩이 제한될 수 있음 (에러 메시지로 안내됨)
 * README.md의 프로젝트 구조와 실제 파일 구조 간 약간의 불일치 존재 가능성
 * **`js/markdown-viewer.js` 구현 완료**: README.md에 언급되었던 가상 파일이 실제 코드로 구현됨.
-* README.md에 언급된 일부 기능(문서 비교 등)을 담당하는 `js/diff-viewer.js` 파일이 현재 `app.js`에 통합되어 있음 (향후 분리 가능).
 
 ## Evolution of Project Decisions
 
