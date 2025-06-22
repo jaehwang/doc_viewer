@@ -61,11 +61,35 @@ export async function loadMarkdownFromText(markdownText, fileName) {
         // Markdown을 HTML로 변환
         let html = marked.parse(markdownText);
 
+        // $$ ... $$ 블록 수식이 <p>, <br>, 줄바꿈 등 다양한 조합으로 감싸지는 경우 모두 치환
+        html = html
+            .replace(/<p>\s*(\${2}[\s\S]*?\${2})\s*<\/p>/g, '$1')
+            .replace(/<p>\s*(\${2}[\s\S]*?\${2})\s*<br\s*\/?>\s*<\/p>/g, '$1')
+            .replace(/<br\s*\/?>\s*(\${2}[\s\S]*?\${2})\s*<br\s*\/?>/g, '$1')
+            .replace(/\${2}\s*<br\s*\/?>/g, '$$\n')
+            .replace(/<br\s*\/?>\s*\${2}/g, '\n$$')
+            .replace(/\${2}\s*\n/g, '$$\n')
+            .replace(/\n\s*\${2}/g, '\n$$')
+            .replace(/(^|\n)\s*(\${2}[\s\S]*?\${2})\s*(?=\n|$)/g, function(match, p1, p2) { return '\n' + p2 + '\n'; });
+
         // Mermaid 다이어그램 처리
         html = await processMermaidDiagrams(html);
 
         // HTML 렌더링
         markdownContent.innerHTML = html;
+
+        // KaTeX 수식 렌더링 (자동)
+        if (window.renderMathInElement) {
+            renderMathInElement(markdownContent, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false
+            });
+        }
 
         // 코드 하이라이팅 적용
         if (typeof Prism !== 'undefined') {

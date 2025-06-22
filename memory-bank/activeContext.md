@@ -2,9 +2,14 @@
 
 ## Current Work Focus
 
-* **Mermaid 렌더링 버그 수정 완료**: `js/markdown-viewer.js`의 HTML 엔티티 디코딩 로직을 개선하여 복잡한 Mermaid 다이어그램도 정상적으로 렌더링되도록 수정.
+* **KaTeX(LaTeX 수식) 블록 수식 렌더링 개선**: js/markdown-viewer.js에서 다양한 마크다운-HTML 변환 케이스(특히 $$ ... $$ 블록 수식이 <p>, <br>, \n 등으로 감싸지는 경우)를 모두 치환하도록 정규식 로직을 대폭 개선. 인라인($...$)과 블록($$...$$) 수식 모두 Markdown 뷰어에서 정상적으로 렌더링되도록 구현.
 
 ## Recent Changes
+
+* **KaTeX 블록 수식 렌더링 로직 개선** (2025-06-22)
+  - js/markdown-viewer.js에서 marked.js가 생성하는 다양한 HTML 패턴(<p>$$<br>수식<br>$$</p>, $$<br>수식<br>$$, $$\n수식\n$$ 등)에 대응하는 정규식 치환 로직 추가.
+  - Mermaid, Prism 등 기존 렌더링 로직과의 충돌 없이 수식이 올바르게 표시됨을 확인.
+  - sample.md 등 테스트 문서에서 블록 수식, 인라인 수식 모두 정상 렌더링 확인.
 
 * **Mermaid 렌더링 로직 개선** (2025-06-22)
   - `processMermaidDiagrams` 함수에서 `textarea`를 이용한 HTML 엔티티 디코딩 방식에 `<br>` 태그를 개행 문자로 치환하는 로직을 추가하여, `sequenceDiagram` 및 `graph TD` 등 복잡한 다이어그램의 렌더링 오류 해결.
