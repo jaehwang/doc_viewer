@@ -90,7 +90,12 @@ async function processMermaidDiagrams(html) {
 
     for (let i = 0; i < matches.length; i++) {
         const match = matches[i];
-        const mermaidCode = match[1].replace(/</g, '<').replace(/>/g, '>').replace(/&/g, '&');
+        
+        // HTML 엔티티를 디코딩하고, <br> 태그를 개행 문자로 변환
+        const textarea = document.createElement('textarea');
+        textarea.innerHTML = match[1];
+        const mermaidCode = textarea.value.replace(/<br\s*\/?>/g, '\n');
+        
         const diagramId = `mermaid-diagram-${i}`;
 
         try {

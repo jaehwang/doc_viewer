@@ -2,10 +2,12 @@
 
 ## Current Work Focus
 
-* **`app.js` 리팩터링 완료**: Markdown 관련 로직을 `js/markdown-viewer.js`로 분리하여 모듈화.
-* **테스트 코드 개선**: 리팩터링에 따른 테스트 코드 수정 및 신규 테스트 파일(`tests/markdown-viewer.test.js`) 추가 완료.
+* **Mermaid 렌더링 버그 수정 완료**: `js/markdown-viewer.js`의 HTML 엔티티 디코딩 로직을 개선하여 복잡한 Mermaid 다이어그램도 정상적으로 렌더링되도록 수정.
 
 ## Recent Changes
+
+* **Mermaid 렌더링 로직 개선** (2025-06-22)
+  - `processMermaidDiagrams` 함수에서 `textarea`를 이용한 HTML 엔티티 디코딩 방식에 `<br>` 태그를 개행 문자로 치환하는 로직을 추가하여, `sequenceDiagram` 및 `graph TD` 등 복잡한 다이어그램의 렌더링 오류 해결.
 
 * **`app.js` 리팩터링 및 모듈 분리** (2025-06-22)
   - `app.js`에 혼재되어 있던 Markdown 관련 기능(파싱, 렌더링, 목차 생성 등)을 `js/markdown-viewer.js` 모듈로 분리.
@@ -55,3 +57,4 @@
 * **테스트 주도 리팩터링**: 기존 테스트 코드가 리팩터링 과정에서 회귀(regression)를 방지하는 안전망 역할을 했으며, 새로운 테스트 코드는 변경된 구조의 안정성을 보장함.
 * **JSDOM의 한계 인지**: `getBoundingClientRect`와 같이 실제 렌더링에 의존하는 DOM API는 JSDOM에서 완벽하게 동작하지 않으므로, 테스트 환경에서 적절한 모의(mock) 처리가 필수적임.
 * **모듈 스코프 이해**: ES6 모듈을 사용하면 변수와 함수는 기본적으로 해당 모듈 내에서만 유효함. 모듈 간 데이터 공유는 `export`와 `import`를 통해 명시적으로 이루어져야 함.
+* **HTML 엔티티 디코딩의 함정**: `textarea`를 이용한 디코딩은 간편하지만, `<br>`과 같은 특정 태그가 의도치 않게 변환될 수 있으므로, 예외 케이스를 고려한 추가 처리가 필요함을 학습.
