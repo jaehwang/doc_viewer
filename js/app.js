@@ -290,6 +290,28 @@ async function handlePDFFile(fileOrPathOrData) {
     if (typeof fileOrPathOrData === 'string') { // 경로가 주어진 경우 (자동 로드용)
         fileNameToDisplay = fileOrPathOrData.split('/').pop();
         try {
+            // 먼저 HEAD 요청으로 파일 존재 여부와 CORS 정책 확인
+            let headResponse;
+            try {
+                headResponse = await fetch(fileOrPathOrData, { method: 'HEAD' });
+            } catch (headError) {
+                if (headError.name === 'TypeError' && headError.message.includes('Failed to fetch')) {
+                    throw new Error('CORS 정책으로 인해 파일에 접근할 수 없습니다. 이 서버는 크로스 오리진 요청을 허용하지 않습니다.');
+                }
+                throw headError;
+            }
+            
+            if (!headResponse.ok) {
+                if (headResponse.status === 404) {
+                    throw new Error(`파일을 찾을 수 없습니다 (404 Not Found). URL을 확인해주세요.`);
+                } else if (headResponse.status === 403) {
+                    throw new Error(`파일에 대한 접근 권한이 없습니다 (403 Forbidden).`);
+                } else {
+                    throw new Error(`서버 오류가 발생했습니다 (HTTP ${headResponse.status}).`);
+                }
+            }
+            
+            // 실제 파일 다운로드
             const response = await fetch(fileOrPathOrData);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -300,6 +322,12 @@ async function handlePDFFile(fileOrPathOrData) {
             hideLoading();
             showError(`파일을 로드하는 중 오류가 발생했습니다: ${error.message}`);
             console.error('Fetch 오류:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+                url: fileOrPathOrData
+            });
             return;
         }
     } else if (fileOrPathOrData instanceof Uint8Array) { // Uint8Array가 주어진 경우 (원격 파일 로드용)
@@ -735,11 +763,22 @@ export async function fetchFileByUrl(url, handlers = {}) {
         }
     } catch (err) {
         _hideLoading();
+        let errorMsg = `원격 파일을 로드할 수 없습니다: ${err.message}`;
+        
         if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-            _showError('CORS 정책 또는 네트워크 문제로 파일을 불러올 수 없습니다.');
-        } else {
-            _showError('원격 파일을 로드할 수 없습니다: ' + err.message);
+            errorMsg += '\n\n가능한 원인:\n- CORS 정책으로 인한 접근 제한 (가장 일반적인 원인)\n- 네트워크 연결 문제\n- 잘못된 URL\n- 서버에서 파일을 찾을 수 없음';
+        } else if (err.message.includes('HTTP')) {
+            errorMsg += '\n\nHTTP 응답 오류입니다. 파일이 존재하지 않거나 서버에 문제가 있을 수 있습니다.';
         }
+        
+        _showError(errorMsg);
+        console.error('URL 로드 오류:', err);
+        console.error('Error details:', {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+            url: url
+        });
     } finally {
         _hideLoading();
     }

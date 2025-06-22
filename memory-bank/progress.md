@@ -5,6 +5,10 @@
 * PDF/Markdown 뷰어, 문서 비교, 코드 하이라이팅, 자동 목차, Mermaid 다이어그램 등 README.md에 명시된 주요 기능이 정상 동작
 * **PDF 기본 줌 설정 개선**: 100%를 기본값으로 설정하여 예측 가능한 초기 크기 제공
 * **PDF 페이지 간 크기 불일치 문제 해결**: 100% 고정 줌에서 모든 페이지 크기가 일관적으로 유지됨(`commit: 59bce91`)
+* **URL 파일 로딩 기능 완성**: PDF 파일 URL 로딩 시 상세한 에러 처리 및 사용자 친화적 메시지 제공
+  - handlePDFFile 함수 개선: URL과 File 객체 모두 적절히 처리
+  - HEAD 요청을 통한 선제적 에러 감지 (CORS, 404, 403, 기타 HTTP 에러)
+  - GitHub raw 파일 등 다양한 소스에서 URL 로딩 테스트 성공
 * 원격 파일 로드 UI 및 fetchFileByUrl 함수 구현, CORS 허용 서버에서 정상 동작 확인
 * fetchFileByUrl의 currentFileName 상태가 핸들러(setCurrentFileName)로 일관되게 갱신됨
 * Jest 기반 테스트 환경 구축 및 테스트 코드(app.test.js, pdf-viewer.test.js)에서 모든 시나리오(정상, 실패, CORS, HTTP 에러, 실제 네트워크) 100% 통과
@@ -14,8 +18,11 @@
 
 * **CRITICAL: PDF 텍스트 선택 영역 오른쪽 끝 문제 해결** - 선택 영역이 텍스트 끝까지 도달하지 않는 문제 (진행 중)
 * PDF.js 텍스트 레이어의 텍스트 요소 너비 정확성 완성 및 모든 줌 레벨에서 정확한 텍스트 선택 구현
+* URL 로딩 기능 추가 개선
+  - 로딩 진행율 표시 기능
+  - URL 입력 UI/UX 개선
+  - 더 다양한 파일 소스 지원 테스트
 * CORS 우회(프록시) 옵션 안내 및 테스트용 CORS 허용 파일 목록 제공
-* fetchFileByUrl 함수의 예외 처리 및 사용자 경험 개선(로딩, 에러, 안내)
 * js/markdown-viewer.js, js/diff-viewer.js 등 README에 언급된 모듈화된 JS 파일의 실제 구현 및 app.js와의 통합(현재 js/ 폴더에 없음)
 * 테스트 커버리지 확대: app.test.js, pdf-viewer.test.js 외 다른 모듈(Markdown, Diff 등)에 대한 단위/통합 테스트 추가
 * LICENSE 파일 생성 및 명시
@@ -25,6 +32,7 @@
 ## Current Status
 
 * 프로젝트의 기본 골격(index.html, css/style.css, js/app.js, js/pdf-viewer.js, js/ui.js) 존재
+* **URL 파일 로딩 기능 완성** (2025-01-22): handlePDFFile 함수 개선 및 상세 에러 처리 구현 완료
 * 원격 파일 로드 기능이 UI/핸들러/예외 처리까지 구현됨
 * fetchFileByUrl의 파일명 상태 동기화 및 테스트 신뢰성 확보
 * **PDF 페이지 간 크기 불일치 문제 해결(`commit: 59bce91`)**
@@ -45,7 +53,7 @@
 * 매우 큰 PDF 파일(50MB 이상)은 성능 이슈가 있을 수 있음
 * 일부 복잡한 PDF 폼은 완전히 지원되지 않을 수 있음
 * 인터넷 연결이 필요함(CDN 라이브러리 사용 시)
-* CORS 정책으로 인해 fetch로 원격 파일을 불러올 때 제한이 있음(코드로 해결 불가, 테스트는 조건부 통과)
+* **CORS 정책 제한**: 일부 외부 서버에서는 CORS 정책으로 인해 URL 로딩이 제한될 수 있음 (에러 메시지로 안내됨)
 * README.md의 프로젝트 구조와 실제 파일 구조 간 약간의 불일치 존재 가능성
 * README.md에 언급된 일부 기능(Markdown 뷰어, 문서 비교 등)을 담당하는 js/markdown-viewer.js, js/diff-viewer.js 파일이 현재 js/ 폴더에 없음(app.js 내부 통합 또는 미구현 상태)
 
@@ -55,6 +63,7 @@
 * 기능 확장: 문서 비교, Mermaid 다이어그램, 자동 목차 등 고급 기능 추가
 * 원격 파일 로드 기능 추가 및 CORS 이슈 안내
 * fetchFileByUrl의 상태 동기화 및 테스트 신뢰성 확보(핸들러 패턴, 조건부 검증)
+* **URL 파일 로딩 기능 완성**: handlePDFFile 함수 개선 및 HEAD 요청 기반 에러 처리 구현
 * 사용자 경험 개선: 드래그 앤 드롭, 반응형 디자인, 키보드 단축키 등 편의 기능 도입
 * **PDF 뷰어 사용성 개선**: 사용자 피드백에 따라 자동 조정에서 100% 고정으로 기본 줌 변경
 * **PDF 페이지 간 크기 불일치 문제 해결 및 문서화(`commit: 59bce91`)**
