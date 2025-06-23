@@ -56,7 +56,7 @@ PDF와 Markdown 파일을 지원하는 웹 기반 문서 뷰어입니다. Mermai
 1. 저장소 클론
 ```bash
 git clone <repository-url>
-cd pdf_bbs
+cd doc_viewer
 ```
 
 2. 의존성 설치 (선택사항, 현재는 외부 라이브러리 CDN 사용)
