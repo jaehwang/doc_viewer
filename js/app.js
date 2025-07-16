@@ -1,6 +1,6 @@
 import * as pdfViewer from './pdf-viewer.js';
 import * as markdownViewer from './markdown-viewer.js';
-import { showLoading, hideLoading, showError, showPDFViewer, showMarkdownViewer } from './ui.js';
+import { showLoading, hideLoading, showError, hideError, showPDFViewer, showMarkdownViewer } from './ui.js';
 
 // PDF.js 워커 설정
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -133,6 +133,9 @@ function setupRemoteFileEventListeners() {
     
     if (loadRemoteFileBtn && remoteFileUrlInput) {
         loadRemoteFileBtn.addEventListener('click', () => {
+            // 기존 에러 메시지 숨김
+            hideError();
+            
             const url = remoteFileUrlInput.value.trim();
             if (!url) {
                 showError('URL을 입력하세요.');
@@ -143,7 +146,17 @@ function setupRemoteFileEventListeners() {
         
         remoteFileUrlInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                // 기존 에러 메시지 숨김
+                hideError();
                 loadRemoteFileBtn.click();
+            }
+        });
+        
+        // URL 입력 시작 시에도 에러 메시지 숨김
+        remoteFileUrlInput.addEventListener('input', () => {
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorMessage && errorMessage.style.display === 'block') {
+                hideError();
             }
         });
     }

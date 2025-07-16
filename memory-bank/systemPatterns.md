@@ -10,7 +10,7 @@
 ## Key Technical Decisions
 
 *   **Vanilla JavaScript 사용**: 외부 프레임워크 없이 순수 JavaScript로 개발하여 경량성과 학습 용이성을 추구합니다.
-*   **CDN을 통한 라이브러리 사용**: 설치 복잡성을 줄이고 빠르게 기능을 통합하기 위해 주요 라이브러리는 CDN을 통해 로드합니다. (단, `README.md`에는 명시되어 있으나, 실제 프로젝트 파일 구조에서는 로컬 라이브러리 사용 가능성도 있음 - 확인 필요)
+*   **CDN을 통한 라이브러리 사용**: `index.html`에서 확인된 바와 같이, 모든 핵심 외부 라이브러리(PDF.js, Marked.js, Mermaid.js, Prism.js, jsdiff, KaTeX)는 CDN을 통해 로드됩니다. 이는 설치 복잡성을 줄이고 빠른 기능 통합을 가능하게 합니다.
 *   **File API 활용**: 로컬 파일 접근 및 처리를 위해 HTML5 File API를 사용합니다.
 *   **CSS3 스타일링**: Flexbox, Grid 등을 활용하여 반응형 레이아웃 및 현대적인 UI를 구현합니다.
 
@@ -30,7 +30,7 @@
 *   `js/markdown-viewer.js`: Marked.js, Mermaid.js, Prism.js 등의 라이브러리를 사용하여 Markdown 파싱, 다이어그램 렌더링, 코드 하이라이팅, 목차 생성 등 Markdown 관련 기능을 담당합니다. `app.js`에 의해 호출되어 사용됩니다.
 *   `js/ui.js`: 사용자 인터페이스 요소(로딩, 에러 메시지, 뷰어 표시 등)의 동적인 제어 및 상호작용 로직을 담당합니다. `app.js` 및 다른 뷰어 모듈들과 연동됩니다.
 *   (가상) `js/diff-viewer.js`: jsdiff 라이브러리를 사용하여 문서 비교 기능을 담당합니다. (현재 `app.js`에 로직이 포함되어 있으며, 향후 분리 가능)
-*   외부 라이브러리 (PDF.js, Marked.js, Mermaid.js, Prism.js, jsdiff): 각 전문 기능을 제공하며, 해당 기능 모듈(`pdf-viewer.js` 등) 또는 `app.js`에서 직접 호출되어 사용됩니다.
+*   외부 라이브러리 (PDF.js, Marked.js, Mermaid.js, Prism.js, jsdiff, KaTeX): 각 전문 기능을 제공하며, 해당 기능 모듈(`pdf-viewer.js` 등) 또는 `app.js`에서 직접 호출되어 사용됩니다.
 
 ## Critical Implementation Paths
 

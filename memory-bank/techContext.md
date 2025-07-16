@@ -6,12 +6,13 @@
     *   HTML5 (시맨틱 마크업, File API)
     *   CSS3 (Flexbox, Grid, 애니메이션)
     *   Vanilla JavaScript (ES6+ 모듈 시스템 사용 - `"type": "module"` in `package.json`)
-*   **핵심 라이브러리 (README.md 기반)**:
+*   **핵심 라이브러리 (CDN 로드)**:
     *   PDF.js: Mozilla의 JavaScript PDF 렌더러
     *   Marked.js: Markdown 파서
     *   Mermaid.js: 다이어그램 및 차트 렌더링
     *   Prism.js: 코드 구문 강조
     *   jsdiff: 텍스트 차이 분석 및 비교
+    *   KaTeX: LaTeX 수식 렌더링
 *   **테스팅**:
     *   Jest: JavaScript 테스팅 프레임워크
     *   JSDOM: Jest 테스트를 위한 DOM 환경
@@ -42,7 +43,7 @@
 
 *   **브라우저 호환성**: 모던 웹 브라우저에 의존적. 구형 브라우저 지원 제한적일 수 있음.
 *   **클라이언트 사이드 처리 한계**: 매우 큰 파일(예: 50MB 이상 PDF) 처리 시 성능 저하 가능성.
-*   **인터넷 연결**: `README.md`에는 CDN 라이브러리 사용으로 인터넷 연결이 필요하다고 명시되어 있으나, `package.json`에 `canvas` 등의 의존성이 있는 것으로 보아 일부 라이브러리는 로컬 설치될 수 있음. (실제 라이브러리 로딩 방식 확인 필요)
+*   **인터넷 연결**: `index.html`에서 확인된 바와 같이, 모든 핵심 외부 라이브러리는 CDN을 통해 로드되므로 인터넷 연결이 필수적입니다. `package.json`의 의존성은 주로 Node.js 기반의 테스트 환경(Jest)을 위한 것입니다.
 *   **PDF 폼 지원**: 일부 복잡한 PDF 폼은 완벽하게 지원되지 않을 수 있음.
 *   **보안**: 클라이언트 사이드에서 파일을 다루므로, 파일 접근 권한 및 XSS 등의 웹 보안 고려 필요.
 
@@ -55,12 +56,6 @@
 *   **개발 의존성 (`devDependencies` in `package.json`)**:
     *   `jest`: 테스팅 프레임워크
     *   `jest-environment-jsdom`: Jest를 위한 JSDOM 환경
-*   **외부 라이브러리 (README.md 기반, CDN 또는 로컬 설치 가능성)**:
-    *   PDF.js
-    *   Marked.js
-    *   Mermaid.js
-    *   Prism.js
-    *   jsdiff
 
 ## Tool Usage Patterns
 
