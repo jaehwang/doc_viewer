@@ -525,6 +525,28 @@ body {
     overflow: auto;
 }
 
+/* PDF.js 표준 뷰어 iframe 스타일 */
+.pdf-viewer-frame {
+    width: 100%;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    border: none;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    /* 레이아웃 강제 설정 */
+    position: relative;
+    display: block;
+    visibility: visible;
+    opacity: 1;
+}
+
+/* 커스텀 뷰어 컨테이너 */
+.custom-viewer {
+    width: 100%;
+    height: 100%;
+}
+
 #pdfCanvas {
     max-width: 100%;
     max-height: 80vh;

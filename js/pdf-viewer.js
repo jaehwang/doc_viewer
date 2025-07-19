@@ -229,20 +229,31 @@ function createCanvas(scaledViewport) {
     return canvas;
 }
 
-// 텍스트 레이어 컨테이너 생성
+// 텍스트 레이어 컨테이너 생성 (PDF.js 표준 호환)
 function createTextLayerDiv(scaledViewport) {
     const textLayerDiv = document.createElement('div');
+    
+    // PDF.js 표준 클래스명 사용
     textLayerDiv.className = 'textLayer';
-    textLayerDiv.style.position = 'absolute';
-    textLayerDiv.style.left = '0';
-    textLayerDiv.style.top = '0';
-    textLayerDiv.style.width = scaledViewport.width + 'px';
-    textLayerDiv.style.height = scaledViewport.height + 'px';
-    textLayerDiv.style.overflow = 'hidden';
-    textLayerDiv.style.opacity = '0.2';
-    textLayerDiv.style.lineHeight = '1.0';
-    textLayerDiv.style.userSelect = 'text';
-    textLayerDiv.style.pointerEvents = 'auto';
+    
+    // PDF.js 표준 스타일 적용
+    Object.assign(textLayerDiv.style, {
+        position: 'absolute',
+        left: '0',
+        top: '0',
+        right: '0',
+        bottom: '0',
+        width: scaledViewport.width + 'px',
+        height: scaledViewport.height + 'px',
+        overflow: 'hidden',
+        opacity: '0.2', // 디버깅용, 나중에 0으로 변경
+        lineHeight: '1.0',
+        userSelect: 'text',
+        pointerEvents: 'auto',
+        // PDF.js TextLayerBuilder 필수 속성들
+        transformOrigin: '0% 0%'
+    });
+    
     return textLayerDiv;
 }
 
@@ -310,25 +321,214 @@ export function calculateOptimalScale(viewport, container) {
     return optimalScale;
 }
 
-// 텍스트 레이어 렌더링 (CSS Transform 방식)
+// 텍스트 레이어 렌더링 (PDF.js 표준 API 방식)
 export async function renderTextLayer(page, viewport, textLayerDiv) {
     try {
         textLayerDiv.innerHTML = '';
         
-        const originalViewport = page.getViewport({ scale: 1.0 });
-        const textContent = await page.getTextContent();
-        const scaleRatio = viewport.scale / originalViewport.scale;
+        // 사용 가능한 API 체크
+        console.log('PDF.js API 체크:', {
+            pdfjsViewer: !!window.pdfjsViewer,
+            TextLayerBuilder: !!(window.pdfjsViewer && window.pdfjsViewer.TextLayerBuilder),
+            renderTextLayer: !!pdfjsLib.renderTextLayer
+        });
         
-        await waitForLayoutReady(textLayerDiv);
-        
-        processTextItems(textContent, originalViewport, textLayerDiv);
-        
-        const actualScaleRatio = calculateActualScaleRatio(textLayerDiv, viewport, scaleRatio);
-        applyTextTransform(textLayerDiv, actualScaleRatio);
+        // PDF.js 표준 방식 시도
+        await renderWithStandardAPI(page, viewport, textLayerDiv);
         
     } catch (error) {
         console.error('텍스트 레이어 렌더링 오류:', error);
+        // 에러 시 폴백 방식 시도
+        try {
+            console.log('폴백 방식으로 전환');
+            await renderWithImprovedManual(page, viewport, textLayerDiv);
+        } catch (fallbackError) {
+            console.error('폴백 렌더링도 실패:', fallbackError);
+        }
     }
+}
+
+// PDF.js Viewer Layer API를 사용한 텍스트 레이어 렌더링
+async function renderWithStandardAPI(page, viewport, textLayerDiv) {
+    try {
+        const textContent = await page.getTextContent();
+        
+        // PDF.js Viewer Layer의 TextLayerBuilder 사용 시도
+        if (window.pdfjsViewer && window.pdfjsViewer.TextLayerBuilder) {
+            console.log('TextLayerBuilder 사용 시도');
+            
+            try {
+                console.log('TextLayerBuilder 메서드 확인:', Object.getOwnPropertyNames(window.pdfjsViewer.TextLayerBuilder.prototype));
+                
+                // TextLayerBuilder 설정
+                const textLayerBuilder = new window.pdfjsViewer.TextLayerBuilder({
+                    textLayerDiv: textLayerDiv,
+                    pageIndex: currentPage - 1,
+                    viewport: viewport,
+                    textContentSource: textContent // 생성자에서 직접 설정
+                });
+                
+                console.log('TextLayerBuilder 생성 완료');
+                console.log('사용 가능한 메서드들:', Object.getOwnPropertyNames(textLayerBuilder));
+                
+                // 다양한 API 시도
+                if (typeof textLayerBuilder.setTextContent === 'function') {
+                    textLayerBuilder.setTextContent(textContent);
+                    console.log('setTextContent 사용');
+                } else if (typeof textLayerBuilder.setTextContentSource === 'function') {
+                    textLayerBuilder.setTextContentSource(textContent);
+                    console.log('setTextContentSource 사용');
+                } else {
+                    console.log('텍스트 설정 메서드 없음, 생성자에서 설정됨');
+                }
+                
+                // 렌더링 수행
+                const renderResult = textLayerBuilder.render();
+                console.log('Render 호출 완료, 결과:', renderResult);
+                
+                // Promise 처리
+                if (renderResult && typeof renderResult.then === 'function') {
+                    await renderResult;
+                } else if (renderResult && renderResult.promise) {
+                    await renderResult.promise;
+                }
+                
+                console.log('TextLayerBuilder 렌더링 완료');
+                
+            } catch (builderError) {
+                console.error('TextLayerBuilder 에러:', builderError);
+                console.error('에러 상세:', builderError.message);
+                throw builderError;
+            }
+            
+        } else if (pdfjsLib.renderTextLayer) {
+            // 폴백: Display Layer API 사용 (개선된 버전)
+            console.log('pdfjsLib.renderTextLayer 사용');
+            
+            const renderTask = pdfjsLib.renderTextLayer({
+                textContentSource: textContent,
+                container: textLayerDiv,
+                viewport: viewport,
+                textDivs: [],
+                textContentItemsStr: [] // 추가 옵션
+            });
+            
+            await renderTask.promise;
+            console.log('renderTextLayer 완료');
+        } else {
+            throw new Error('PDF.js 텍스트 레이어 API를 찾을 수 없습니다');
+        }
+        
+        // 텍스트 선택 최적화
+        optimizeTextSelection(textLayerDiv);
+        
+    } catch (error) {
+        console.error('표준 API 텍스트 렌더링 실패:', error);
+        console.error('에러 상세:', error.message);
+        console.error('스택 트레이스:', error.stack);
+        throw error;
+    }
+}
+
+// 개선된 수동 텍스트 레이어 렌더링
+async function renderWithImprovedManual(page, viewport, textLayerDiv) {
+    const textContent = await page.getTextContent();
+    
+    // 각 텍스트 아이템을 정확한 위치에 배치
+    textContent.items.forEach((textItem, index) => {
+        if (!textItem.str || textItem.str.trim() === '') return;
+        
+        const span = createAccurateTextSpan(textItem, viewport, index);
+        textLayerDiv.appendChild(span);
+    });
+    
+    // 텍스트 선택 최적화
+    optimizeTextSelection(textLayerDiv);
+}
+
+// 정확한 텍스트 span 생성 (디버깅 강화)
+function createAccurateTextSpan(textItem, viewport, index) {
+    const span = document.createElement('span');
+    span.textContent = textItem.str;
+    span.setAttribute('data-text-index', index);
+    
+    // 1. PDF 좌표계에서 브라우저 좌표계로 변환
+    const transform = pdfjsLib.Util.transform(viewport.transform, textItem.transform);
+    
+    // 2. Y축 뒤집기 (PDF는 하단 기준, 브라우저는 상단 기준)
+    const flippedTransform = pdfjsLib.Util.transform(transform, [1, 0, 0, -1, 0, viewport.height]);
+    
+    // 3. 위치와 크기 계산
+    const fontSize = Math.sqrt(flippedTransform[2] * flippedTransform[2] + flippedTransform[3] * flippedTransform[3]);
+    const left = flippedTransform[4];
+    const top = flippedTransform[5] - fontSize; // 폰트 베이스라인 보정
+    
+    // 4. 텍스트 너비 정확 계산
+    const scaleX = Math.sqrt(flippedTransform[0] * flippedTransform[0] + flippedTransform[1] * flippedTransform[1]);
+    const width = textItem.width * scaleX;
+    
+    // 5. 회전 각도 계산
+    const angle = Math.atan2(flippedTransform[1], flippedTransform[0]);
+    
+    Object.assign(span.style, {
+        position: 'absolute',
+        left: `${left}px`,
+        top: `${top}px`,
+        fontSize: `${fontSize}px`,
+        width: `${width}px`,
+        transform: angle !== 0 ? `rotate(${angle}rad)` : 'none',
+        transformOrigin: '0% 0%',
+        fontFamily: 'serif',
+        color: 'transparent',
+        userSelect: 'text',
+        cursor: 'text',
+        whiteSpace: 'pre',
+        pointerEvents: 'auto',
+        overflow: 'visible',
+        boxSizing: 'border-box',
+        lineHeight: '1.0'
+    });
+    
+    // 디버깅 정보 로그 (개발 중에만)
+    if (window.location.hostname === 'localhost' && index < 5) {
+        console.log(`Text ${index}: "${textItem.str.substring(0, 10)}..."`, {
+            originalTransform: textItem.transform,
+            viewportTransform: viewport.transform,
+            finalTransform: flippedTransform,
+            position: { left, top, fontSize, width },
+            textItemWidth: textItem.width,
+            scaleX
+        });
+    }
+    
+    return span;
+}
+
+// 텍스트 선택 최적화
+function optimizeTextSelection(textLayerDiv) {
+    // 텍스트 레이어 전체 설정 최적화
+    Object.assign(textLayerDiv.style, {
+        pointerEvents: 'auto',
+        userSelect: 'text',
+        cursor: 'text'
+    });
+    
+    // 모든 텍스트 span에 대해 선택 최적화
+    const textSpans = textLayerDiv.querySelectorAll('span');
+    textSpans.forEach(span => {
+        span.style.userSelect = 'text';
+        span.style.pointerEvents = 'auto';
+        
+        // 디버깅용: 선택 영역 시각화 (개발 중에만)
+        if (window.location.hostname === 'localhost') {
+            span.addEventListener('mouseenter', () => {
+                span.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+            });
+            span.addEventListener('mouseleave', () => {
+                span.style.backgroundColor = 'transparent';
+            });
+        }
+    });
 }
 
 // DOM 레이아웃 준비 대기
@@ -344,127 +544,11 @@ async function waitForLayoutReady(textLayerDiv) {
     });
 }
 
-// 텍스트 아이템들 처리
-function processTextItems(textContent, originalViewport, textLayerDiv) {
-    textContent.items.forEach(function(textItem) {
-        if (!textItem.str || textItem.str.trim() === '') {
-            return;
-        }
-        
-        const position = calculateTextPosition(textItem, originalViewport);
-        const span = createTextSpan(textItem, position);
-        textLayerDiv.appendChild(span);
-    });
-}
-
-// 텍스트 위치 계산
-function calculateTextPosition(textItem, originalViewport) {
-    const tx = pdfjsLib.Util.transform(
-        pdfjsLib.Util.transform(originalViewport.transform, textItem.transform),
-        [1, 0, 0, -1, 0, 0]
-    );
-    
-    const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
-    const textWidth = textItem.width;
-    const scaledTextWidth = textWidth * (fontHeight / textItem.height);
-    const matrixScaledWidth = textWidth * Math.abs(tx[0] / textItem.transform[0]);
-    const directScaledWidth = textWidth * Math.abs(tx[0]) / textItem.transform[0];
-    const finalWidth = Math.max(matrixScaledWidth, scaledTextWidth, directScaledWidth);
-    
-    return {
-        left: tx[4],
-        top: tx[5] - fontHeight,
-        fontSize: fontHeight,
-        width: finalWidth
-    };
-}
-
-// 텍스트 span 요소 생성
-function createTextSpan(textItem, position) {
-    const span = document.createElement('span');
-    span.textContent = textItem.str;
-    
-    Object.assign(span.style, {
-        position: 'absolute',
-        left: position.left + 'px',
-        top: position.top + 'px',
-        fontSize: position.fontSize + 'px',
-        width: position.width + 'px',
-        fontFamily: 'sans-serif',
-        color: 'transparent',
-        userSelect: 'text',
-        cursor: 'text',
-        whiteSpace: 'pre',
-        pointerEvents: 'auto',
-        transformOrigin: '0% 0%',
-        overflow: 'visible',
-        boxSizing: 'border-box'
-    });
-    
-    return span;
-}
-
-// 실제 스케일 비율 계산
-function calculateActualScaleRatio(textLayerDiv, viewport, scaleRatio) {
-    const canvas = textLayerDiv.parentElement.querySelector('canvas');
-    let actualScaleRatio = scaleRatio;
-    
-    if (canvas) {
-        const canvasRect = canvas.getBoundingClientRect();
-        const actualScaleX = canvasRect.width / viewport.width;
-        const actualScaleY = canvasRect.height / viewport.height;
-        actualScaleRatio = Math.min(actualScaleX, actualScaleY);
-    }
-    
-    return actualScaleRatio;
-}
-
-// 텍스트 변환 적용
-function applyTextTransform(textLayerDiv, actualScaleRatio) {
-    textLayerDiv.style.transform = `scale(${actualScaleRatio})`;
-    textLayerDiv.style.transformOrigin = '0 0';
-}
+// 레거시 함수들 (하위 호환성을 위해 유지하되 사용하지 않음)
+// TODO: 충분한 테스트 후 제거 예정
 
 // 수동 텍스트 레이어 구현 (폴백용)
-async function renderTextLayerManual(page, viewport, textLayerDiv) {
-    try {
-        const textContent = await page.getTextContent();
-        
-        textContent.items.forEach(function(textItem) {
-            if (!textItem.str || textItem.str.trim() === '') {
-                return;
-            }
-            
-            // PDF.js 표준 변환 사용
-            const tx = pdfjsLib.Util.transform(
-                pdfjsLib.Util.transform(viewport.transform, textItem.transform),
-                [1, 0, 0, -1, 0, 0]
-            );
-            
-            const fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
-            
-            // 텍스트 요소 생성
-            const span = document.createElement('span');
-            span.textContent = textItem.str;
-            span.style.position = 'absolute';
-            span.style.left = tx[4] + 'px';
-            span.style.top = (tx[5] - fontHeight) + 'px';
-            span.style.fontSize = fontHeight + 'px';
-            span.style.fontFamily = 'sans-serif';
-            span.style.color = 'transparent';
-            span.style.userSelect = 'text';
-            span.style.cursor = 'text';
-            span.style.whiteSpace = 'pre';
-            span.style.pointerEvents = 'auto';
-            span.style.transformOrigin = '0% 0%';
-            
-            textLayerDiv.appendChild(span);
-        });
-        
-    } catch (error) {
-        console.error('수동 텍스트 레이어 렌더링 오류:', error);
-    }
-}
+// 레거시 수동 텍스트 레이어 구현 제거됨 (새로운 방식으로 대체)
 
 // 이전 페이지
 export function showPrevPage() {

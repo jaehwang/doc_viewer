@@ -291,8 +291,105 @@ async function handlePDFFile(fileOrPathOrData) {
     currentFileType = 'pdf';
     showLoading();
     
-    await pdfViewer.loadPDF(data);
+    // PDF.js 표준 뷰어 사용 시도
+    const useStandardViewer = await tryStandardViewer(fileOrPathOrData, fileName);
+    
+    if (!useStandardViewer) {
+        // 폴백: 기존 커스텀 뷰어 사용
+        await pdfViewer.loadPDF(data);
+        showCustomViewer();
+    }
+    
     hideLoading();
+}
+
+// PDF.js 표준 뷰어 사용 시도
+async function tryStandardViewer(fileOrPathOrData, fileName) {
+    try {
+        console.log('PDF.js 표준 뷰어 시도');
+        
+        let fileUrl;
+        if (typeof fileOrPathOrData === 'string') {
+            // URL 그대로 사용
+            fileUrl = fileOrPathOrData;
+        } else if (fileOrPathOrData instanceof File) {
+            // File 객체를 Blob URL로 변환
+            fileUrl = URL.createObjectURL(fileOrPathOrData);
+        } else {
+            // Uint8Array나 기타 형태는 표준 뷰어로 처리 불가
+            console.log('표준 뷰어로 처리할 수 없는 데이터 형태');
+            return false;
+        }
+        
+        // PDF.js 뷰어 URL 구성 - 로컬 설치된 뷰어 사용
+        const viewerUrl = `vendor/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
+        
+        // iframe에 뷰어 로드
+        const iframe = document.getElementById('pdfViewerFrame');
+        
+        // 먼저 표준 뷰어 표시하여 레이아웃 확정
+        showStandardViewer();
+        
+        // DOM 레이아웃 완료 대기
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    // 강제로 레이아웃 계산
+                    iframe.offsetWidth;
+                    iframe.offsetHeight;
+                    resolve();
+                });
+            });
+        });
+        
+        // 옵션: 새 탭에서 뷰어 열기 (더 안정적)
+        if (confirm('PDF.js 표준 뷰어를 새 탭에서 열까요? (텍스트 선택이 완벽하게 작동합니다)')) {
+            window.open(viewerUrl, '_blank');
+            return false; // 커스텀 뷰어로 폴백하지 않음
+        }
+        
+        // URL에 뷰어 파라미터 추가하여 스크롤 오류 방지
+        const viewerUrlWithParams = `${viewerUrl}#zoom=page-fit&pagemode=none`;
+        iframe.src = viewerUrlWithParams;
+        
+        // iframe 로딩 완료 대기
+        await new Promise(resolve => {
+            iframe.onload = () => {
+                // 로딩 완료 후 추가 지연
+                setTimeout(resolve, 500);
+            };
+            // 타임아웃 설정 (10초)
+            setTimeout(resolve, 10000);
+        });
+        
+        console.log('표준 뷰어 로딩 성공');
+        return true;
+    } catch (error) {
+        console.error('표준 뷰어 로딩 실패:', error);
+        return false;
+    }
+}
+
+// 표준 뷰어 표시
+function showStandardViewer() {
+    const customViewer = document.getElementById('customViewerContainer');
+    const standardViewer = document.getElementById('pdfViewerFrame');
+    
+    if (customViewer) customViewer.style.display = 'none';
+    if (standardViewer) standardViewer.style.display = 'block';
+    
+    console.log('표준 뷰어 UI 표시');
+}
+
+// 커스텀 뷰어 표시
+function showCustomViewer() {
+    const customViewer = document.getElementById('customViewerContainer');
+    const standardViewer = document.getElementById('pdfViewerFrame');
+    
+    if (customViewer) customViewer.style.display = 'block';
+    if (standardViewer) standardViewer.style.display = 'none';
+    
+    console.log('커스텀 뷰어 UI 표시');
 }
 
 // PDF 데이터 준비 함수
