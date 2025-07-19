@@ -59,7 +59,22 @@ git clone <repository-url>
 cd doc_viewer
 ```
 
-2. 의존성 설치 (선택사항, 현재는 외부 라이브러리 CDN 사용)
+2. PDF.js 설치 (Universal Viewer 사용을 위해 필수)
+```bash
+# PDF.js 배포판 다운로드 및 압축 해제
+# 프로젝트 루트에 이미 pdfjs-5.3.93-dist.zip이 있는 경우:
+unzip pdfjs-5.3.93-dist.zip
+
+# vendor 디렉토리로 PDF.js 파일 이동
+mv build vendor/
+mv web vendor/
+
+# 또는 수동으로:
+# 1. https://github.com/mozilla/pdf.js/releases에서 최신 배포판 다운로드
+# 2. 압축 해제 후 build/와 web/ 폴더를 vendor/ 디렉토리로 복사
+```
+
+3. 의존성 설치 (선택사항, 테스트용)
 ```bash
 nvm install Iron
 nvm use Iron
@@ -89,12 +104,17 @@ http://localhost:8000
 
 ```
 doc_viewer/
-├── index.html         # 메인 웹 페이지 진입점
+├── index.html         # Universal Viewer (PDF.js 기반 통합 뷰어)
+├── old.index.html     # 기존 커스텀 뷰어 (백업 및 참조용)
+├── vendor/            # PDF.js 배포판 (설치 후 생성)
+│   ├── build/         # PDF.js 빌드 파일
+│   └── web/           # PDF.js 웹 뷰어 파일
 ├── css/
-│   └── style.css      # 메인 스타일시트
+│   └── style.css      # 커스텀 뷰어 스타일시트
 ├── js/
-│   ├── app.js         # 메인 애플리케이션 컨트롤러
-│   ├── pdf-viewer.js  # PDF 뷰어 모듈
+│   ├── app.js         # 커스텀 뷰어 애플리케이션 컨트롤러
+│   ├── pdf-viewer.js  # 커스텀 PDF 뷰어 모듈
+│   ├── markdown-viewer.js  # Markdown 뷰어 모듈
 │   └── ui.js          # UI 상태 관리 모듈
 ├── memory-bank/       # 프로젝트 맥락 및 문서화
 │   ├── activeContext.md    # 현재 개발 컨텍스트

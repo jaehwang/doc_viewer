@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>문서 뷰어</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- PDF.js 뷰어 CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.css">
+    <!-- PDF.js 뷰어 JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.js"></script>
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <!-- Mermaid.js for diagram rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+    <!-- Prism.js for code highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <!-- jsdiff for document comparison -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsdiff/7.0.0/diff.min.js"></script>
+    <!-- KaTeX for LaTeX math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>문서 뷰어</h1>
+            <p class="subtitle">PDF 및 Markdown 파일을 지원합니다</p>
+        </header>
+
+        <!-- 파일 업로드 영역 -->
+        <div class="upload-section" id="uploadSection">
+            <!-- 모드 선택 탭 -->
+            <div class="mode-tabs">
+                <button class="tab-btn active" id="viewModeTab" onclick="switchMode('view')">보기 모드</button>
+                <button class="tab-btn" id="compareModeTab" onclick="switchMode('compare')">비교 모드</button>
+            </div>
+
+            <!-- 단일 파일 업로드 (보기 모드) -->
+            <div class="upload-container" id="viewModeContainer">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-content">
+                        <div class="upload-icon">📄</div>
+                        <p>PDF 또는 Markdown 파일을 여기에 드래그하거나 클릭하여 선택하세요</p>
+                        <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
+                        <input type="file" id="fileInput" accept=".pdf,.md,.markdown" style="display: none;">
+                        <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                            파일 선택
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 원격 파일 로드 영역 -->
+                <div class="remote-file-loader" style="margin: 16px 0; text-align: center;">
+                    <input type="text" id="remoteFileUrl" placeholder="파일 URL 입력 (예: https://.../sample.pdf)" style="width: 320px; padding: 6px;" />
+                    <button id="loadRemoteFileBtn" class="upload-btn">URL로 파일 로드</button>
+                </div>
+            </div>
+
+            <!-- 비교 모드 업로드 -->
+            <div class="upload-container comparison-mode" id="compareModeContainer" style="display: none;">
+                <div class="comparison-uploads">
+                    <div class="upload-area comparison-upload" id="oldFileArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">📄</div>
+                            <h3>이전 문서</h3>
+                            <p>비교할 원본 문서를 선택하세요</p>
+                            <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
+                            <input type="file" id="oldFileInput" accept=".pdf,.md,.markdown" style="display: none;">
+                            <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('oldFileInput').click()">
+                                파일 선택
+                            </button>
+                            <div class="file-status" id="oldFileStatus"></div>
+                        </div>
+                    </div>
+                    <div class="upload-area comparison-upload" id="newFileArea">
+                        <div class="upload-content">
+                            <div class="upload-icon">📄</div>
+                            <h3>새 문서</h3>
+                            <p>비교할 새 문서를 선택하세요</p>
+                            <p class="file-types">지원 형식: .pdf, .md, .markdown</p>
+                            <input type="file" id="newFileInput" accept=".pdf,.md,.markdown" style="display: none;">
+                            <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('newFileInput').click()">
+                                파일 선택
+                            </button>
+                            <div class="file-status" id="newFileStatus"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="comparison-controls">
+                    <button class="compare-btn" id="compareBtn" onclick="compareDocuments()" disabled>
+                        문서 비교하기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 뷰어 영역 -->
+        <div class="viewer-section" id="viewerSection" style="display: none;">
+            <!-- 컨트롤 패널 -->
+            <div class="controls">
+                <div class="file-info">
+                    <span id="fileName" class="file-name"></span>
+                    <span id="fileType" class="file-type"></span>
+                </div>
+                <div class="nav-controls" id="pdfNavControls">
+                    <button id="prevBtn" class="nav-btn" disabled>◀ 이전</button>
+                    <span class="page-info">
+                        <input type="number" id="pageInput" min="1" value="1" class="page-input">
+                        <span> / </span>
+                        <span id="totalPages">0</span>
+                    </span>
+                    <button id="nextBtn" class="nav-btn" disabled>다음 ▶</button>
+                    
+                    <div class="zoom-controls">
+                        <button id="zoomOutBtn" class="zoom-btn" title="축소">−</button>
+                        <select id="zoomSelect" class="zoom-select">
+                            <option value="auto">자동</option>
+                            <option value="page-width">페이지 너비</option>
+                            <option value="page-fit">페이지 맞춤</option>
+                            <option value="0.5">50%</option>
+                            <option value="0.75">75%</option>
+                            <option value="1.0" selected>100%</option>
+                            <option value="1.25">125%</option>
+                            <option value="1.5">150%</option>
+                            <option value="2.0">200%</option>
+                        </select>
+                        <button id="zoomInBtn" class="zoom-btn" title="확대">+</button>
+                    </div>
+                </div>
+                <div class="nav-controls" id="markdownNavControls" style="display: none;">
+                    <button id="tocToggle" class="nav-btn">📋 목차</button>
+                    <button id="scrollTop" class="nav-btn">⬆ 맨 위로</button>
+                </div>
+                <div class="file-controls">
+                    <button id="newFileBtn" class="control-btn">새 파일</button>
+                </div>
+            </div>
+
+            <!-- PDF 뷰어 -->
+            <div class="pdf-container" id="pdfContainer">
+                <!-- 기존 커스텀 뷰어 (폴백용) -->
+                <div id="customViewerContainer" class="custom-viewer" style="display: none;">
+                    <div id="viewerContainer" class="pdfViewer">
+                        <div id="viewer" class="pdfViewer"></div>
+                    </div>
+                </div>
+                
+                <!-- PDF.js 표준 뷰어 (iframe) -->
+                <iframe id="pdfViewerFrame" class="pdf-viewer-frame" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+                
+                <div class="loading" id="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>문서를 로딩 중입니다...</p>
+                </div>
+            </div>
+
+            <!-- Markdown 뷰어 -->
+            <div class="markdown-container" id="markdownContainer" style="display: none;">
+                <div class="markdown-sidebar" id="markdownSidebar">
+                    <div class="toc-header">
+                        <h3>목차</h3>
+                        <button id="closeToc" class="close-btn">✕</button>
+                    </div>
+                    <div id="tableOfContents" class="toc-content"></div>
+                </div>
+                <div class="markdown-content" id="markdownContent"></div>
+            </div>
+
+            <!-- 비교 결과 컨테이너 -->
+            <div class="comparison-container" id="comparisonContainer" style="display: none;">
+                <div class="comparison-header">
+                    <h3>문서 비교 결과</h3>
+                    <div class="comparison-legend">
+                        <span class="legend-item">
+                            <span class="legend-color added"></span>
+                            추가된 내용
+                        </span>
+                        <span class="legend-item">
+                            <span class="legend-color removed"></span>
+                            삭제된 내용
+                        </span>
+                    </div>
+                </div>
+                <div class="comparison-content" id="comparisonContent"></div>
+            </div>
+        </div>
+
+        <!-- 에러 메시지 -->
+        <div class="error-message" id="errorMessage" style="display: none;">
+            <p id="errorText"></p>
+            <button>확인</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/ui.js"></script>
+    <script type="module" src="js/pdf-viewer.js"></script>
+    <script type="module" src="js/markdown-viewer.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
