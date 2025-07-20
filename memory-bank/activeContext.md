@@ -2,8 +2,9 @@
 
 ## Current Work Focus
 
-* **Universal Viewer 구현 완료**: PDF.js 표준 뷰어를 기반으로 Markdown 지원을 추가한 통합 문서 뷰어를 메인 인터페이스로 설정 (2025-07-19)
-* **Architecture Migration**: 기존 커스텀 PDF 뷰어에서 PDF.js 공식 viewer.html 기반 솔루션으로 완전 전환하여 텍스트 선택 문제 근본 해결
+* **마크다운 목차 기능 완성**: Safari 호환성 문제를 해결하고 계층적 목차 네비게이션 기능을 완전 구현 (2025-07-20)
+* **Safari 브라우저 호환성 확보**: 라이브러리 로딩 대기 시스템과 DOM 요소 null 체크로 안정성 향상
+* **PDF.js 기본 파일 로딩 오류 해결**: compressed.tracemonkey-pldi-09.pdf 로딩 오류 제거로 깔끔한 사용자 경험 제공
 
 ## Recent Changes
 
