@@ -1,22 +1,57 @@
 import { showLoading, hideLoading, showError, showMarkdownViewer } from './ui.js';
 
-// 초기화
+// 초기화 (Safari 호환성 개선)
 export function initializeMarkdownViewer() {
-    // Mermaid 초기화
-    mermaid.initialize({
-        startOnLoad: false,
-        theme: 'default',
-        securityLevel: 'loose'
+    // 라이브러리 로딩 완료 대기
+    waitForLibraries().then(() => {
+        // Mermaid 초기화
+        if (typeof mermaid !== 'undefined') {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose'
+            });
+        }
     });
+}
 
-    // 이벤트 리스너 설정
+// 마크다운 이벤트 리스너 설정 (마크다운 로드 후 호출)
+function setupMarkdownEventListeners() {
     const tocToggle = document.getElementById('tocToggle');
-    const scrollTop = document.getElementById('scrollTop');
     const closeToc = document.getElementById('closeToc');
 
-    if (tocToggle) tocToggle.addEventListener('click', toggleTableOfContents);
-    if (scrollTop) scrollTop.addEventListener('click', scrollToTop);
-    if (closeToc) closeToc.addEventListener('click', hideTableOfContents);
+    if (tocToggle) {
+        // 기존 이벤트 리스너 제거 후 새로 추가
+        tocToggle.removeEventListener('click', toggleTableOfContents);
+        tocToggle.addEventListener('click', toggleTableOfContents);
+        console.log('목차 토글 버튼 이벤트 리스너 설정됨');
+    }
+    
+    if (closeToc) {
+        closeToc.removeEventListener('click', hideTableOfContents);
+        closeToc.addEventListener('click', hideTableOfContents);
+        console.log('목차 닫기 버튼 이벤트 리스너 설정됨');
+    }
+}
+
+// 필수 라이브러리 로딩 대기 함수
+function waitForLibraries() {
+    return new Promise((resolve) => {
+        const checkLibraries = () => {
+            const markedLoaded = typeof marked !== 'undefined';
+            const mermaidLoaded = typeof mermaid !== 'undefined';
+            const prismLoaded = typeof Prism !== 'undefined';
+            const katexLoaded = typeof katex !== 'undefined' && typeof renderMathInElement !== 'undefined';
+            
+            if (markedLoaded && mermaidLoaded && prismLoaded && katexLoaded) {
+                resolve();
+            } else {
+                setTimeout(checkLibraries, 100);
+            }
+        };
+        
+        checkLibraries();
+    });
 }
 
 // 파일로부터 Markdown 로드
@@ -43,13 +78,22 @@ export function loadMarkdownFromFile(file) {
     fileReader.readAsText(file, 'UTF-8');
 }
 
-// 텍스트로부터 Markdown 로드
+// 텍스트로부터 Markdown 로드 (Safari 호환성 개선)
 export async function loadMarkdownFromText(markdownText, fileName) {
     const markdownContent = document.getElementById('markdownContent');
     if (!markdownContent) return;
 
     showLoading();
+    
     try {
+        // 라이브러리 로딩 완료 대기
+        await waitForLibraries();
+        
+        // Marked가 로드되지 않은 경우 폴백
+        if (typeof marked === 'undefined') {
+            throw new Error('Marked 라이브러리가 로드되지 않았습니다.');
+        }
+
         // Marked 설정
         marked.setOptions({
             breaks: true,
@@ -98,6 +142,10 @@ export async function loadMarkdownFromText(markdownText, fileName) {
 
         // 목차 생성
         generateTableOfContents();
+        
+        // 목차 관련 이벤트 리스너 설정 (마크다운 로드 후에 설정)
+        setupMarkdownEventListeners();
+        
         showMarkdownViewer(fileName);
     } catch (error) {
         console.error('Markdown 로드 중 오류 발생:', error);
@@ -107,27 +155,48 @@ export async function loadMarkdownFromText(markdownText, fileName) {
     }
 }
 
-// Mermaid 다이어그램 처리
+// Mermaid 다이어그램 처리 (Safari 호환성 개선)
 async function processMermaidDiagrams(html) {
     const mermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
-    const matches = [...html.matchAll(mermaidRegex)];
+    
+    // Safari 호환성을 위해 matchAll 대신 exec 사용
+    const matches = [];
+    let match;
+    while ((match = mermaidRegex.exec(html)) !== null) {
+        matches.push(match);
+        // 무한 루프 방지
+        if (mermaidRegex.lastIndex === match.index) {
+            mermaidRegex.lastIndex++;
+        }
+    }
 
     for (let i = 0; i < matches.length; i++) {
-        const match = matches[i];
+        const currentMatch = matches[i];
         
         // HTML 엔티티를 디코딩하고, <br> 태그를 개행 문자로 변환
         const textarea = document.createElement('textarea');
-        textarea.innerHTML = match[1];
+        textarea.innerHTML = currentMatch[1];
         const mermaidCode = textarea.value.replace(/<br\s*\/?>/g, '\n');
         
         const diagramId = `mermaid-diagram-${i}`;
 
         try {
-            const { svg } = await mermaid.render(diagramId, mermaidCode);
-            const diagramHtml = `<div class="mermaid">${svg}</div>`;
-            html = html.replace(match[0], diagramHtml);
+            // Mermaid가 사용 가능한지 확인
+            if (typeof mermaid !== 'undefined' && mermaid.render) {
+                const { svg } = await mermaid.render(diagramId, mermaidCode);
+                const diagramHtml = `<div class="mermaid">${svg}</div>`;
+                html = html.replace(currentMatch[0], diagramHtml);
+            } else {
+                console.warn('Mermaid가 로드되지 않았습니다.');
+                // 폴백: 원본 코드 블록 유지
+                const fallbackHtml = `<pre><code class="language-mermaid">${mermaidCode}</code></pre>`;
+                html = html.replace(currentMatch[0], fallbackHtml);
+            }
         } catch (error) {
             console.error('Mermaid 렌더링 오류:', error);
+            // 오류 시 원본 코드 블록 유지
+            const fallbackHtml = `<pre><code class="language-mermaid">${mermaidCode}</code></pre>`;
+            html = html.replace(currentMatch[0], fallbackHtml);
         }
     }
     return html;
@@ -180,11 +249,6 @@ function hideTableOfContents() {
     if (markdownSidebar) markdownSidebar.classList.remove('active');
 }
 
-// 맨 위로 스크롤
-function scrollToTop() {
-    const markdownContent = document.getElementById('markdownContent');
-    if (markdownContent) markdownContent.scrollTo({ top: 0, behavior: 'smooth' });
-}
 
 // Markdown 텍스트 추출 (비교 기능용)
 export async function extractMarkdownText(file) {

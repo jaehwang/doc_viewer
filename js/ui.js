@@ -1,15 +1,27 @@
 // UI 관련 기능
 
+// DOM 요소들
+const markdownContainer = document.getElementById('markdownContainer');
+const pdfContainer = document.getElementById('pdfContainer');
+const markdownNavControls = document.getElementById('markdownNavControls');
+const pdfNavControls = document.getElementById('pdfNavControls');
+const uploadSection = document.getElementById('uploadSection');
+const viewerSection = document.getElementById('viewerSection');
+
 // 로딩 표시
 export function showLoading() {
     const loading = document.getElementById('loading');
-    loading.style.display = 'flex';
+    if (loading) {
+        loading.style.display = 'flex';
+    }
 }
 
 // 로딩 숨김
 export function hideLoading() {
     const loading = document.getElementById('loading');
-    loading.style.display = 'none';
+    if (loading) {
+        loading.style.display = 'none';
+    }
 }
 
 // 에러 메시지 표시
@@ -68,7 +80,9 @@ function setupErrorButtonListener(errorMessage) {
 // 에러 메시지 숨김
 export function hideError() {
     const errorMessage = document.getElementById('errorMessage');
-    errorMessage.style.display = 'none';
+    if (errorMessage) {
+        errorMessage.style.display = 'none';
+    }
 }
 
 // PDF 뷰어 표시
@@ -94,20 +108,22 @@ export function showPDFViewer(fileNameToDisplay) {
 
 // Markdown 뷰어 표시
 export function showMarkdownViewer(fileNameToDisplay) {
-    // 파일 정보 업데이트
-    const fileNameElement = document.getElementById('fileName');
-    const fileTypeElement = document.getElementById('fileType');
-
-    fileNameElement.textContent = fileNameToDisplay;
-    fileTypeElement.textContent = 'Markdown';
+    // PDF.js 뷰어 완전히 숨김
+    const outerContainer = document.getElementById('outerContainer');
+    if (outerContainer) {
+        outerContainer.style.display = 'none';
+    }
     
-    // 컨테이너 전환
-    pdfContainer.style.display = 'none';
-    markdownContainer.style.display = 'flex';
+    // 마크다운 컨테이너 표시
+    if (markdownContainer) {
+        markdownContainer.style.display = 'block';
+    }
     
-    // 네비게이션 컨트롤 전환
-    pdfNavControls.style.display = 'none';
-    markdownNavControls.style.display = 'flex';
+    console.log('마크다운 뷰어 표시됨, 파일:', fileNameToDisplay);
+    
+    if (markdownNavControls) {
+        markdownNavControls.style.display = 'flex';
+    }
     
     // 뷰어 섹션 표시
     showViewerSection();
@@ -115,6 +131,10 @@ export function showMarkdownViewer(fileNameToDisplay) {
 
 // 뷰어 섹션 표시
 export function showViewerSection() {
-    uploadSection.style.display = 'none';
-    viewerSection.style.display = 'block';
+    if (uploadSection) {
+        uploadSection.style.display = 'none';
+    }
+    if (viewerSection) {
+        viewerSection.style.display = 'block';
+    }
 }
