@@ -8,6 +8,9 @@ vendor/
 # Test coverage
 coverage/
 
+# ZIP files
+*.zip
+
 # Logs
 *.log
 npm-debug.log*
